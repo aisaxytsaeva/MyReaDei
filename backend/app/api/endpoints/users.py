@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from backend.app.schemas.user_schema import UserProfile
+from backend.app.schemas.user import UserProfile
 
 router = APIRouter()
 
@@ -9,10 +9,10 @@ async def get_profile():
     return
 
 
-@router.get("/my-books")
+@router.get("/my_books")
 async def get_my_books():
     return {"books": []}
 
-@router.get("/my-reservations")
+@router.get("/my_reservations")
 async def get_my_reservations():
     return {"reservations": []}

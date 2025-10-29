@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from backend.app.schemas.auth_schema import Token, UserLogin, UserRegister, UserResponse
+from backend.app.schemas.auth import Token, UserLogin, UserRegister, UserResponse
 
 
 router = APIRouter()

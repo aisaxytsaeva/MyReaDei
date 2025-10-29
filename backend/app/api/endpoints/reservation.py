@@ -1,10 +1,20 @@
 from fastapi import APIRouter
 
+from backend.app.schemas.reservation import ReservationCreate, ReservationResponse
+
 router = APIRouter()
 
-@router.post("/")
-async def create_reservation():
-    return
+@router.post("/", response_model=ReservationResponse)
+async def create_reservation(reservation_data: ReservationCreate):
+    return ReservationResponse(
+        id=1,
+        book_id=reservation_data.book_id,
+        book_title="Пример книги",
+        status="pending",
+        created_at="2024-01-01",
+        planned_return_date="2024-01-08",
+        selected_location={"id": 1, "name": "Метро Курская"}
+    )
 
 
 @router.get("/")
