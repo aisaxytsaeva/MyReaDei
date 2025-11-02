@@ -2,6 +2,7 @@ from backend.app.models import books, locations, users
 from db import Base
 from sqlalchemy import Column, Integer, ForeignKey, String, DateTime
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 
 class Reservations(Base):
     __tablename__ = "reservations"
@@ -15,3 +16,8 @@ class Reservations(Base):
     returned_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True),server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+    book = relationship("Book", back_populates="reservations")
+    borrower = relationship("User", back_populates="reservations")
+    selected_location = relationship("Location", back_populates="reservations")

@@ -10,8 +10,8 @@ class ReturnPeriod(str, Enum):
 
 class ReservationCreate(BaseModel):
     book_id: int
-    location_id: int
-    return_days: ReturnPeriod
+    selected_location_id: int
+    planned_return_days: ReturnPeriod
 
 
 class ReservationResponse(BaseModel):

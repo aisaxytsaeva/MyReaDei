@@ -12,7 +12,7 @@ async def create_reservation(reservation_data: ReservationCreate):
         book_title="Пример книги",
         status="pending",
         created_at="2024-01-01",
-        planned_return_date="2024-01-08",
+        planned_return_days="2024-01-08",
         selected_location={"id": 1, "name": "Метро Курская"}
     )
 

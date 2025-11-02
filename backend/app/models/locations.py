@@ -2,7 +2,7 @@ from db import Base
 from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, ForeignKey
 from sqlalchemy.sql import func
 
-class locations(Base):
+class Locations(Base):
     __tablename__ = "locations"
 
     id = Column(Integer, primary_key=True, nullable=False)
