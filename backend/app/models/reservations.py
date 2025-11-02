@@ -1,4 +1,4 @@
-from backend.app.models import books, users
+from backend.app.models import books, locations, users
 from db import Base
 from sqlalchemy import Column, Integer, ForeignKey, String, DateTime
 from sqlalchemy.sql import func
