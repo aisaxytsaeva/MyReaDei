@@ -1,27 +1,27 @@
+from typing import List
 from pydantic import BaseModel
 
 class Catalog(BaseModel):
     id: int
-    book_name: str
+    title: str
     author: str
-    cover: str
+    cover_image_uri: str 
     readers_count: int
 
 class BookResponse(BaseModel):
     id: int
-    book_name: str
+    title: str
     author: str
-    descriptoin: str
-    cover: str
+    description: str
+    cover_image_uri: str
     reader_count: int 
-    location: str
+    locations: List[str]
     owner_id: int
     status: str
 
 class BookCreate(BaseModel):
-    book_name: str
+    title: str  
     author: str
-    descriptoin: str
-    cover: str
-    location: str
-    
+    description: str  
+    cover_image_uri: str 
+    location_ids: List[int]  

@@ -13,3 +13,4 @@ class LocationResponse(BaseModel):
     latitude: float
     longitude: float
     created_by: int
+    is_approved: bool

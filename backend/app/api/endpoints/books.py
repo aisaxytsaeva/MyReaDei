@@ -18,12 +18,12 @@ async def get_catalog(
 async def create_book(book_data: BookCreate):
     return BookResponse(
         id=1,
-        book_name=book_data.name,
+        title=book_data.title,
         author=book_data.author,
-        descriptoin=book_data.descriptoin,
-        cover=book_data.cover,
+        description=book_data.description,
+        cover_image_uri=book_data.cover_image_uri,
         reader_count=0,
-        location=book_data.location,
+        locations=List[book_data.location_ids],
         owner_id=1,
         status=""
     )
@@ -34,12 +34,12 @@ async def create_book(book_data: BookCreate):
 async def get_book_profile(book_id: int):
     return BookResponse(
         id=book_id,
-        book_name="",
+        title="",
         author="",
-        descriptoin="",
-        cover="",
+        description="",
+        cover_image_uri="",
         reader_count=1,
-        location="",
+        locations="",
         owner_id=1,
         status=""
     )
