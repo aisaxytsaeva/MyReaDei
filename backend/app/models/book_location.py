@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.sql import func
-from db import Base
+from core.db import Base
+from sqlalchemy.orm import relationship
 
 class BookLocation(Base):
     __tablename__ = "book_locations"

@@ -1,15 +1,15 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
-from backend.app.models.books import Books
-from backend.app.models.reservations import Reservations
+from backend.app.models.books import Book
+from backend.app.models.reservations import Reservation
 from backend.app.models.user_read_books import UserReadBooks
 from backend.app.schemas.reservation import ReservationCreate, ReservationResponse
-from db import Base
+from core.db import Base
 
 
-def create_reservation(db:Session, reservation_data:ReservationCreate, borrower_id: int) -> Reservations:
-    db_reservation = Reservations(
+def create_reservation(db:Session, reservation_data:ReservationCreate, borrower_id: int) -> Reservation:
+    db_reservation = Reservation(
         book_id = reservation_data.book_id,
         borrower_id = borrower_id ,
         selected_location_id = reservation_data.selected_location_id,
@@ -20,7 +20,7 @@ def create_reservation(db:Session, reservation_data:ReservationCreate, borrower_
     db.add(db_reservation)
     db.commit()
     db.refresh(db_reservation)
-    book = db.query(Books).filter(Books.id == reservation_data.book_id).first()
+    book = db.query(Book).filter(Book.id == reservation_data.book_id).first()
     if book:
         book.status = "booked"  
         book.updated_at = datetime.now()
@@ -31,14 +31,14 @@ def create_reservation(db:Session, reservation_data:ReservationCreate, borrower_
     return db_reservation
 
 
-def confirm_reservation(db: Session, reservation_id: int, owner_id: int) -> Reservations:
-    reservation = db.query(Reservations).filter(Reservations.id == reservation_id).first()
+def confirm_reservation(db: Session, reservation_id: int, owner_id: int) -> Reservation:
+    reservation = db.query(Reservation).filter(Reservation.id == reservation_id).first()
     
     if not reservation:
         raise ValueError("Бронирование не найдено")
     
 
-    book = db.query(Books).filter(Books.id == reservation.book_id).first()
+    book = db.query(Book).filter(Book.id == reservation.book_id).first()
     if not book or book.owner_id != owner_id:
         raise ValueError("Вы не являетесь владельцем этой книги")
  
@@ -54,10 +54,10 @@ def confirm_reservation(db: Session, reservation_id: int, owner_id: int) -> Rese
     return reservation
 
 def get_reservation(db:Session, reservation_id: int) -> Optional[ReservationResponse]:
-    reservation = db.query(Reservations).options(
-        joinedload(Reservations.book),
-        joinedload(Reservations.selected_location)
-    ).filter(Reservations.id == reservation_id).first()
+    reservation = db.query(Reservation).options(
+        joinedload(Reservation.book),
+        joinedload(Reservation.selected_location)
+    ).filter(Reservation.id == reservation_id).first()
 
     if not reservation:
         return None
@@ -81,8 +81,8 @@ def get_reservation(db:Session, reservation_id: int) -> Optional[ReservationResp
         }
     )
 
-def close_reservation(db: Session, reservation_id:int) -> Optional[Reservations]:
-    reservation = db.query(Reservations).filter(Reservations.id == reservation_id).first()
+def close_reservation(db: Session, reservation_id:int) -> Optional[Reservation]:
+    reservation = db.query(Reservation).filter(Reservation.id == reservation_id).first()
 
     if not reservation:
         return None
@@ -94,7 +94,7 @@ def close_reservation(db: Session, reservation_id:int) -> Optional[Reservations]
     reservation.returned_at = datetime.now()
     reservation.updated_at = datetime.now()
 
-    book = db.query(Books).filter(Books.id == reservation.book_id).first()
+    book = db.query(Book).filter(Book.id == reservation.book_id).first()
     if book:
         book.status = "available"  
         book.updated_at = datetime.now()
@@ -113,13 +113,13 @@ def close_reservation(db: Session, reservation_id:int) -> Optional[Reservations]
 
     return reservation
 
-def cancel_reservation(db: Session, reservation_id: int, user_id: int) -> Optional[Reservations]:
-    reservation = db.query(Reservations).filter(Reservations.id == reservation_id).first()
+def cancel_reservation(db: Session, reservation_id: int, user_id: int) -> Optional[Reservation]:
+    reservation = db.query(Reservation).filter(Reservation.id == reservation_id).first()
 
     if not reservation:
         raise ValueError("Бронирование не найдено")
     
-    book = db.query(Books).filter(Books.id == reservation.book_id).first()
+    book = db.query(Book).filter(Book.id == reservation.book_id).first()
     if not book:
         raise ValueError("Книга не найдена")
     
@@ -152,9 +152,9 @@ def cancel_reservation(db: Session, reservation_id: int, user_id: int) -> Option
     return reservation
 
 def get_user_reservations(db:Session, user_id: int, skip: int = 0, limit: int = 100) -> List[ReservationResponse]:
-    reservations = db.query(Reservations).filter(Reservations.borrower_id == user_id ).options(
-        joinedload(Reservations.book),
-        joinedload(Reservations.selected_location)
+    reservations = db.query(Reservation).filter(Reservation.borrower_id == user_id ).options(
+        joinedload(Reservation.book),
+        joinedload(Reservation.selected_location)
     ).offset(skip).limit(limit).all()
 
     users_reservations = []
