@@ -1,6 +1,6 @@
 import React from 'react';
-import Container from '../UI/Container/Container';
-import Button from '../UI/Button/Button';
+import Container from '../../UI/Container/Container';
+import Button from '../../UI/Button/Button';
 
 const WelcomePage = () => {
   const handleGetStarted = () => {
@@ -47,7 +47,7 @@ const WelcomePage = () => {
             <Button 
               size="large" 
               onClick={handleGetStarted}
-              href="/register"
+              href="/auth"
             >
               Начать читать
             </Button>
