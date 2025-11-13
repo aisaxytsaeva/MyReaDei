@@ -25,3 +25,12 @@ class BookCreate(BaseModel):
     description: str  
     cover_image_uri: str 
     location_ids: List[int]  
+
+class DeleteBook(BaseModel):
+    book_id: int
+
+class DeleteBookResponse(BaseModel):
+    book_id: int
+    success: bool
+    message: str = "Книга успешно удалена"
+

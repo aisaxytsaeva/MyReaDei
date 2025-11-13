@@ -57,7 +57,8 @@ def create_book_with_locations(db: Session, book_data: BookCreate, owner_id: int
         author=book_data.author,
         description=book_data.description,
         cover_image_uri=book_data.cover_image_uri,
-        owner_id=owner_id
+        owner_id=owner_id,
+        
     )
     db.add(db_book)
     db.commit()
@@ -104,31 +105,36 @@ def get_book_with_details(db: Session, book_id: int) -> Optional[BookResponse]:
     )
 
 
-def delete_book(db:Session, book_id: int, user_id: int):
+def delete_book(db: Session, book_id: int, user_id: int) -> bool:
+
+
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
-        return ValueError("Книга не найдена")
-    if book.owner_id != user_id:
-        return ValueError("Вы не являетесь владельцем этой книги. Удаление недоступно")
+        raise ValueError("Книга не найдена") 
     
 
-    actinve_reservations = db.query(Reservation).filter(Reservation.book_id == book_id, Reservation.status.in_(["pending", "handed_over"])).count
+    if book.owner_id != user_id:
+        raise ValueError("Вы не являетесь владельцем этой книги. Удаление недоступно")
 
-    if actinve_reservations > 0:
-        return ValueError("Вы не можете удалить забронированную книгу")
+    active_reservations = db.query(Reservation).filter(
+        Reservation.book_id == book_id, 
+        Reservation.status.in_(["pending", "confirmed_by_owner", "handed_over"])  
+    ).count()  
+    
+    if active_reservations > 0:
+        raise ValueError("Вы не можете удалить книгу с активными бронированиями")
     
     try:
+
+        db.query(BookLocation).filter(BookLocation.book_id == book_id).delete()
         
-        book_locations = db.query(BookLocation).filter(BookLocation.book_id == book_id).all()
-        for book_location in book_locations:
-            db.delete(book_location)
+
+        db.query(UserReadBooks).filter(UserReadBooks.book_id == book_id).delete()
         
+
+        db.query(Reservation).filter(Reservation.book_id == book_id).delete()
         
-        read_records = db.query(UserReadBooks).filter(UserReadBooks.book_id == book_id).all()
-        for read_record in read_records:
-            db.delete(read_record)
-        
-        
+
         db.delete(book)
         db.commit()
         
@@ -137,4 +143,3 @@ def delete_book(db:Session, book_id: int, user_id: int):
     except Exception as e:
         db.rollback()
         raise ValueError(f"Ошибка при удалении книги: {str(e)}")
-    return 

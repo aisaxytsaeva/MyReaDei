@@ -40,19 +40,13 @@ def get_popular_books(db: Session, skip: int =0, limit: int = 10, days: Optional
     ]
 
 def get_platform_stats(db: Session) -> PlatformStats:
-    """
-    Получение общей статистики платформы
-    """
-    # Общее количество книг
+
     total_books = db.query(func.count(Book.id)).scalar() or 0
     
-    # Общее количество пользователей (предполагаем, что есть модель User)
     total_users = db.query(func.count(User.id)).scalar() or 0
     
-    # Общее количество резерваций
     total_reservations = db.query(func.count(Reservation.id)).scalar() or 0
     
-    # Активные резервации (предположим, что статус 'active' для активных)
     active_reservations = db.query(func.count(Reservation.id)).filter(
         Reservation.status == 'active'  # или другой статус для активных
     ).scalar() or 0
