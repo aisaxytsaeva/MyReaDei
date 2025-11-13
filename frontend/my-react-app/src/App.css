@@ -4,12 +4,25 @@
   box-sizing: border-box;
 }
 
+html, body {
+  height: 100%;
+}
+
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   line-height: 1.6;
-  color: #F8DDD3;
+  color: #711720; 
+  background-color: #F8DDD3; 
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+  background-color: #F8DDD3; 
 }
 
 .App {
   min-height: 100vh;
+  background-color: #F8DDD3; 
+  color: #711720; 
 }

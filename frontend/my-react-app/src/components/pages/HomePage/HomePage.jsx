@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import BookCard from '../UI/Book/BookCarg';
-import SearchBar from '../UI/Book/SearchBar';
-
+import BookCard from '../../UI/Book/BookCard';
+import SearchBar from '../../UI/Book/SearchBar';
+import { useNavigate } from 'react-router-dom'; 
+import Header from '../../UI/Header/Header';
+import { useAuth } from '../../../context/AuthContext'; 
+import './HomePage.css'; 
 
 const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const isAuthenticated = false;
+  const { user } = useAuth(); 
+  const isAuthenticated = !!user; 
+  const navigate = useNavigate(); 
 
   const popularBooks = [
     { id: 1, title: 'Мастер и Маргарита', author: 'Михаил Булгаков' },
@@ -18,41 +23,45 @@ const HomePage = () => {
 
   const handleSearch = (query) => {
     console.log('Поиск:', query);
-    // Логика поиска
+    navigate('/search', { state: { searchQuery: query } });
   };
 
   const handleBookAction = (bookId) => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
     console.log('Бронирование книги:', bookId);
   };
 
   return (
-    <div>
-      <header>
-        <h1>MyReaDei</h1>
-        {isAuthenticated ? (
-          <div>
-            <span>Добро пожаловать!</span>
-            
-          </div>
-        ) : (
-          <div>
-            <button onClick={() => window.location.href = '/auth'}>Войти</button>
-            
-          </div>
-        )}
-      </header>
-
+    <div className="page">
+      <Header />
       
-      <SearchBar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onSearchSubmit={handleSearch}
-      />
+      <div className="search-container">
+        <SearchBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSearchSubmit={handleSearch}
+        />
+      </div>
 
-      <section>
-        <h2>Что популярно сейчас!</h2>
+      <section className="popular-books-section">
+        <h2 
+          className="section-title"
+          style={{
+            textAlign: 'center',
+            margin: '30px 0',
+            color: '#333',
+            fontSize: '28px',
+            fontWeight: '600',
+            width: '100%'
+          }}
+        >
+          Что популярно сейчас!
+        </h2>
         
-        <div>
+        <div className="books-grid">
           {popularBooks.map(book => (
             <BookCard
               key={book.id}

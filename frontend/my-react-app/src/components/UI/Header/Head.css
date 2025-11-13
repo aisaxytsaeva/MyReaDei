@@ -1,0 +1,35 @@
+.header {
+  width: 100%;
+  height: 77px;
+  display: flex;
+  align-items: center;
+  padding-left: 192px;
+  background-color: #711720; /* Прозрачный фон */
+  position: relative;
+  z-index: 1;
+}
+
+.logo {
+  color: #711720; 
+  font-size: 40px;
+  font-weight: normal;
+  margin: 0;
+}
+
+.authSection {
+  margin-left: auto;
+  padding-right: 192px;
+}
+
+.profileIcon, .loginButton {
+  background: none;
+  border: none;
+  color: #711720;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.profileIcon:hover, .loginButton:hover {
+  opacity: 0.8;
+}

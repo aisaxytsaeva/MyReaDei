@@ -1,5 +1,7 @@
 import React from 'react';
 import Button from '../../UI/Button/Button';
+import Header from '../../UI/Header/Header';
+import './RegistrationPage.css';
 
 const RegistrationPage = () => {
     const handleReg = () => {
@@ -7,33 +9,52 @@ const RegistrationPage = () => {
     };
 
     return (
-        <div>
-            <h1>MyReaDei</h1>
+        <div className="registration-page">
+            <Header />
             
-            <h2>Регистрация</h2>
-            
-            <div>
-                <label>Логин</label>
-                <input type="text" />
-            </div>
+            <div className="registration-container">
+                <h2 className="registration-title">Регистрация</h2>
+                
+                <form className="registration-form">
+                    <div className="form-group">
+                        <label className="form-label">Логин</label>
+                        <input 
+                            type="text" 
+                            className="form-input"
+                        />
+                    </div>
 
-            <div>
-                <label>Почта</label>
-                <input type="email" /> 
-            </div>
+                    <div className="form-group">
+                        <label className="form-label">Почта</label>
+                        <input 
+                            type="email" 
+                            className="form-input"
+                        />
+                    </div>
 
-            <div>
-                <label>Пароль</label>
-                <input type="password" />
-            </div>
+                    <div className="form-group">
+                        <label className="form-label">Пароль</label>
+                        <input 
+                            type="password" 
+                            className="form-input"
+                        />
+                    </div>
 
-            <Button 
-                size="large" 
-                onClick={handleReg}
-                href="/home"
-            >
-                Зарегистрироваться 
-            </Button>
+                    <div className="button-center">
+                        <Button 
+                            size="large" 
+                            onClick={handleReg}
+                            href="/home"
+                            style={{ 
+                                width: '460px', 
+                                height: '50px'
+                            }}
+                        >
+                            Зарегистрироваться 
+                        </Button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };

@@ -1,4 +1,7 @@
 import React from 'react';
+import './SearchBar.css'; 
+
+
 
 const SearchBar = ({ searchQuery, onSearchChange, onSearchSubmit }) => {
   const handleSubmit = (e) => {
@@ -7,14 +10,20 @@ const SearchBar = ({ searchQuery, onSearchChange, onSearchSubmit }) => {
   };
 
   return (
-    <section>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Введите название или автора"
-        />
+    <section className="search-bar-section">
+      <form onSubmit={handleSubmit} className="search-form">
+        <div className="search-input-container">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Введите название или автора"
+            className="search-input"
+          />
+          <button type="submit" className="search-button">
+            <img src="/assets/search.svg" alt="Поиск" className="search-icon" />
+          </button>
+        </div>
       </form>
     </section>
   );
