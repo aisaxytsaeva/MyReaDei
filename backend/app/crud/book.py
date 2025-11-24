@@ -1,12 +1,15 @@
 
+from fastapi import Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
 from app.models.user_read_books import UserReadBooks
 from app.models.book_location import BookLocation
+from backend.app.core.security import get_current_user
 from backend.app.models.books import Book
 from backend.app.models.locations import Location
 from backend.app.models.reservations import Reservation
+from backend.app.models.users import User
 from backend.app.schemas.books import BookCreate, BookResponse, Catalog
 
 
@@ -51,18 +54,18 @@ def get_users_books(db: Session, user_id: int, skip: int = 0, limit: int = 100) 
     return user_books
 
 
-def create_book_with_locations(db: Session, book_data: BookCreate, owner_id: int) -> Book:
+def create_book(db: Session, book_data: BookCreate, current_user: User = Depends(get_current_user) ) -> Book:
     db_book = Book(
         title=book_data.title,
         author=book_data.author,
         description=book_data.description,
         cover_image_uri=book_data.cover_image_uri,
-        owner_id=owner_id,
+        owner_id=current_user,
         
     )
     db.add(db_book)
     db.commit()
-    db.refresh(db_book)
+
     
     
     for location_id in book_data.location_ids:

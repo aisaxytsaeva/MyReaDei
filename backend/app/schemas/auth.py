@@ -2,6 +2,18 @@ import re
 from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationError
 
 
+class UserBase(BaseModel):
+    username: str
+    email: EmailStr
+
+
+class UserResponse(UserBase):
+    id: int
+    is_active: bool
+    
+    class Config:
+        from_attributes = True
+
 class UserRegister(BaseModel):
     username: str
     email: EmailStr
@@ -12,11 +24,9 @@ class UserRegister(BaseModel):
     def validate_password(cls, value:str) -> str:
         if len(value) < 8:
             raise ValueError("Пароль должен содержать минимум 8 символов")
-        if not re.search(r'/d', value):
+        if not re.search(r'\d', value):
             raise ValueError("Пароль должен содержать хотя бы одну цифру")
-        if not re.match(r'^[A-Za-z0-9!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>/?]+$',value):
-            raise ValueError("Пароль должен содержать только латинские буквы, цифры и специальные символы")
-        return value
+
 
 class UserLogin(BaseModel):
     username: str
@@ -26,8 +36,22 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-class UserResponse(BaseModel):
-    id: int
-    username: str
-    email: str
-    is_active: bool
+class TokenData(BaseModel):
+    username: str | None = None
+
+
+class OAuth2PasswordRequestForm:
+    def __init__(
+        self,
+        username: str,
+        password: str,
+        scope: str = "",
+        client_id: str | None = None,
+        client_secret: str | None = None,
+    ):
+        self.username = username
+        self.password = password
+        self.scopes = scope.split()
+        self.client_id = client_id
+        self.client_secret = client_secret
+
