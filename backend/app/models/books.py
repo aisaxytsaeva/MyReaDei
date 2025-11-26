@@ -1,4 +1,4 @@
-from backend.app.models import users
+
 from core.db import Base
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.sql import func

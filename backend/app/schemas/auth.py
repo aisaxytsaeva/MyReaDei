@@ -26,6 +26,7 @@ class UserRegister(BaseModel):
             raise ValueError("Пароль должен содержать минимум 8 символов")
         if not re.search(r'\d', value):
             raise ValueError("Пароль должен содержать хотя бы одну цифру")
+        return value
 
 
 class UserLogin(BaseModel):
@@ -39,19 +40,4 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: str | None = None
 
-
-class OAuth2PasswordRequestForm:
-    def __init__(
-        self,
-        username: str,
-        password: str,
-        scope: str = "",
-        client_id: str | None = None,
-        client_secret: str | None = None,
-    ):
-        self.username = username
-        self.password = password
-        self.scopes = scope.split()
-        self.client_id = client_id
-        self.client_secret = client_secret
 

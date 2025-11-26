@@ -32,3 +32,4 @@ class LocationWithStats(LocationResponse):
 class LocationNearby(BaseModel):
     location: LocationResponse
     distance_km: float
+

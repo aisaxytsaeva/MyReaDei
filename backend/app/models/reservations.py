@@ -1,4 +1,4 @@
-from backend.app.models import books, locations, users
+
 from core.db import Base
 from sqlalchemy import Column, Integer, ForeignKey, String, DateTime
 from sqlalchemy.sql import func
@@ -21,3 +21,4 @@ class Reservation(Base):
     book = relationship("Book", back_populates="reservations")
     borrower = relationship("User", back_populates="reservations")
     selected_location = relationship("Location", back_populates="reservations")
+    read_records = relationship("UserReadBooks", back_populates="reservation")

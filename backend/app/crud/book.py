@@ -3,14 +3,14 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
-from app.models.user_read_books import UserReadBooks
-from app.models.book_location import BookLocation
-from backend.app.core.security import get_current_user
-from backend.app.models.books import Book
-from backend.app.models.locations import Location
-from backend.app.models.reservations import Reservation
-from backend.app.models.users import User
-from backend.app.schemas.books import BookCreate, BookResponse, Catalog
+from models.user_read_books import UserReadBooks
+from models.book_location import BookLocation
+from core.security import get_current_user
+from models.books import Book
+from models.locations import Location
+from models.reservations import Reservation
+from models.users import User
+from schemas.books import BookCreate, BookResponse, BookUpdate, Catalog
 
 
 def get_readers_count(db: Session, book_id: int) -> int:
@@ -18,7 +18,10 @@ def get_readers_count(db: Session, book_id: int) -> int:
             UserReadBooks.book_id == book_id
         ).scalar() or 0
 
-def get_catalog_books(db: Session, skip: int = 0, limit: int = 100) -> List[Catalog]:
+def get_users_books_count(db: Session, user_id: int) -> int:
+    return db.query(Book).filter(Book.owner_id == user_id).count()
+
+def get_catalog_books(db: Session, skip: int = 0, limit: int = 100, sort_by: str = "title") -> List[Catalog]:
     books = db.query(Book).offset(skip).limit(limit).all()
     
     catalog_books = []
@@ -32,6 +35,13 @@ def get_catalog_books(db: Session, skip: int = 0, limit: int = 100) -> List[Cata
             cover_image_uri=book.cover_image_uri,
             readers_count=readers_count
         ))
+
+    if sort_by == "readers":
+        catalog_books.sort(key=lambda x: x.readers_count, reverse=True)
+    elif sort_by == "title":
+        catalog_books.sort(key=lambda x: x.title)
+    elif sort_by == "author":
+        catalog_books.sort(key=lambda x: x.author)
     
     return catalog_books
 
@@ -60,7 +70,7 @@ def create_book(db: Session, book_data: BookCreate, current_user: User = Depends
         author=book_data.author,
         description=book_data.description,
         cover_image_uri=book_data.cover_image_uri,
-        owner_id=current_user,
+        owner_id=current_user.id,
         
     )
     db.add(db_book)
@@ -146,3 +156,100 @@ def delete_book(db: Session, book_id: int, user_id: int) -> bool:
     except Exception as e:
         db.rollback()
         raise ValueError(f"Ошибка при удалении книги: {str(e)}")
+
+def update_book(
+    db: Session, 
+    book_id: int, 
+    book_data: BookUpdate, 
+    user_id: int
+) -> Book:
+
+
+    book = db.query(Book).filter(Book.id == book_id).first()
+    if not book:
+        raise ValueError("Книга не найдена")
+
+    if book.owner_id != user_id:
+        raise ValueError("Вы не являетесь владельцем этой книги")
+
+    if book_data.status and book_data.status != book.status:
+        active_reservations = db.query(Reservation).filter(
+            Reservation.book_id == book_id,
+            Reservation.status.in_(["pending", "confirmed_by_owner", "handed_over"])
+        ).count()
+        
+        if active_reservations > 0 and book_data.status == "unavailable":
+            raise ValueError("Нельзя сделать книгу недоступной при активных бронированиях")
+    
+    try:
+
+        update_data = book_data.dict(exclude_unset=True)
+        
+
+        for field, value in update_data.items():
+            setattr(book, field, value)
+
+        book.updated_at = func.now()
+        
+        db.commit()
+
+        
+        return book
+        
+    except Exception as e:
+        db.rollback()
+        raise ValueError(f"Ошибка при обновлении книги: {str(e)}")
+
+
+def update_book_locations(
+    db: Session,
+    book_id: int,
+    location_ids: List[int],
+    user_id: int
+) -> Book:
+
+    book = db.query(Book).filter(Book.id == book_id).first()
+    if not book:
+        raise ValueError("Книга не найдена")
+    
+
+    if book.owner_id != user_id:
+        raise ValueError("Вы не являетесь владельцем этой книги")
+
+    active_reservations = db.query(Reservation).filter(
+        Reservation.book_id == book_id,
+        Reservation.status.in_(["pending", "confirmed_by_owner", "handed_over"])
+    ).count()
+    
+    if active_reservations > 0:
+        raise ValueError("Нельзя изменять локации при активных бронированиях")
+    
+    try:
+
+        db.query(BookLocation).filter(BookLocation.book_id == book_id).delete()
+
+        for location_id in location_ids:
+            location = db.query(Location).filter(Location.id == location_id).first()
+            if not location:
+                raise ValueError(f"Локация с ID {location_id} не найдена")
+            
+            if not location.is_approved:
+                raise ValueError(f"Локация '{location.name}' не подтверждена")
+            
+            book_location = BookLocation(
+                book_id=book_id,
+                location_id=location_id
+            )
+            db.add(book_location)
+        
+
+        book.updated_at = func.now()
+        
+        db.commit()
+        db.refresh(book)
+        
+        return book
+        
+    except Exception as e:
+        db.rollback()
+        raise ValueError(f"Ошибка при обновлении локаций книги: {str(e)}")

@@ -1,17 +1,14 @@
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
-from requests import Session
+from sqlalchemy.orm import Session
+from fastapi.security import OAuth2PasswordRequestForm 
+from core.config import settings
+from core.db import get_db
+from core.security import create_access_token
+from crud.user import authenticate_user, create_user
+from schemas.auth import Token, UserRegister
 
-from backend.app.core.config import Settings
-from backend.app.core.db import get_db
-from backend.app.core.security import create_access_token, get_current_user
-from backend.app.crud.user import authenticate_user, create_user, update_user
-from backend.app.models.users import User
-from backend.app.schemas.auth import OAuth2PasswordRequestForm, Token, UserLogin, UserRegister, UserResponse
-from backend.app.schemas.user import UserUpdate
-
-
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register")
 async def register(
@@ -43,7 +40,7 @@ async def login(
             detail="Incorrect username or password",
         )
     
-    access_token_expires = timedelta(minutes=Settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
@@ -53,32 +50,4 @@ async def login(
         "token_type": "bearer",
         "user_id": user.id,
         "username": user.username
-    }
-
-
-@router.get("/me")
-async def read_users_me(current_user: User = Depends(get_current_user)):
-    return {
-        "id": current_user.id,
-        "username": current_user.username,
-        "email": current_user.email
-    }
-
-@router.put("/me")
-async def update_user_profile(
-    user_update: UserUpdate, 
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    updated_user = update_user(db, current_user.id, user_update)
-    if not updated_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    return {
-        "message": "Profile updated successfully",
-        "user": {
-            "id": updated_user.id,
-            "username": updated_user.username,
-            "email": updated_user.email
-        }
     }

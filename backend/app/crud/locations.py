@@ -1,10 +1,10 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional, Dict
-from app.models.book_location import BookLocation
-from app.schemas.location import LocationCreate, LocationUpdate, LocationResponse
-from backend.app.models.books import Book
-from backend.app.models.locations import Location
+from models.book_location import BookLocation
+from schemas.location import LocationCreate, LocationUpdate, LocationResponse
+from models.books import Book
+from models.locations import Location
 
 def get_location(db: Session, location_id: int) -> Optional[Location]:
     return db.query(Location).filter(Location.id == location_id).first()
@@ -35,6 +35,7 @@ def create_location(db: Session, location_data: LocationCreate, user_id: int) ->
     
     db.add(db_location)
     db.commit()
+    db.refresh(db_location)
     return db_location
 
 def update_location(

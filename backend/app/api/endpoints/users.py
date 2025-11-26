@@ -1,18 +1,71 @@
-from fastapi import APIRouter
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, Query
+from requests import Session
 
-from backend.app.schemas.user import UserProfile
+from core.db import get_db
+from core.security import get_current_user
+from crud.user import update_user
+from models.users import User
+from schemas.books import Catalog
+from schemas.user import  UserProfile, UserUpdate
+from crud import reservation as reservations_crud
+from crud import book as books_crud
 
-router = APIRouter()
 
-@router.get("profile", redponse_model=UserProfile)
-async def get_profile():
-    return
+router = APIRouter(prefix="/users", tags=["users"])
+
+@router.get("/me", response_model=UserProfile)
+async def read_users_me(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    book_added = books_crud.get_users_books_count(db, current_user.id)
+    book_borrowed = reservations_crud.get_user_completed_reservations_count(db, current_user.id)
+    
+    return UserProfile(
+        id=current_user.id,
+        username=current_user.username,
+        email=current_user.email,
+        book_added=book_added,
+        book_borrowed=book_borrowed
+    )
+
+@router.put("/me")
+async def update_user_profile(
+    user_update: UserUpdate, 
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    updated_user = update_user(db, current_user.id, user_update)
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "message": "Profile updated successfully",
+        "user": {
+            "id": updated_user.id,
+            "username": updated_user.username,
+            "email": updated_user.email
+        }
+    }
+
+@router.get("/stats/my")
+async def get_my_reservations_stats(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    stats = reservations_crud.get_user_reservations_stats(db, current_user.id)
+    return stats
+
+@router.get("/book/my", response_model=List[Catalog])
+async def get_my_books(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    user_books = books_crud.get_users_books(db, current_user.id, skip=skip, limit=limit)
+    return user_books
 
 
-@router.get("/my_books")
-async def get_my_books():
-    return {"books": []}
-
-@router.get("/my_reservations")
-async def get_my_reservations():
-    return {"reservations": []}
