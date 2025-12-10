@@ -19,3 +19,19 @@ class User(Base):
 
     books = relationship("Book", back_populates="owner")
     reservations = relationship("Reservation", back_populates="borrower")
+
+
+    def is_admin(self) -> bool:
+        return self.role == UserRole.ADMIN
+    
+    def is_moderator(self) -> bool:
+        return self.role == UserRole.MODERATOR
+    
+    def is_user(self) -> bool:
+        return self.role == UserRole.USER
+    
+    def has_role(self, role: UserRole) -> bool:
+        return self.role == role
+    
+    def __str__(self):
+        return f"User(id={self.id}, username={self.username}, role={self.role})"

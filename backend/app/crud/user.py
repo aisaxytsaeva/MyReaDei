@@ -25,7 +25,7 @@ def create_user(db: Session, user_data: UserRegister) -> User:
     
     hashed_password = get_password_hash(user_data.password)
     
-    # Отладочная информация
+
     print(f"DEBUG: UserRole.USER = {UserRole.USER}")
     print(f"DEBUG: UserRole.USER.value = {UserRole.USER.value}")
     print(f"DEBUG: Type of UserRole.USER.value = {type(UserRole.USER.value)}")

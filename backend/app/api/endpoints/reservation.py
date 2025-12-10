@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime, timedelta
-
 from core.db import get_db
 from core.security import get_current_user
 from crud import reservation as reservations_crud

@@ -1,30 +1,37 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List, Optional, Dict
+from typing import List, Optional
 from models.book_location import BookLocation
-from schemas.location import LocationCreate, LocationUpdate, LocationResponse
+from schemas.location import LocationCreate, LocationUpdate, LocationResponse, LocationWithStats
 from models.books import Book
 from models.locations import Location
 
+
 def get_location(db: Session, location_id: int) -> Optional[Location]:
     return db.query(Location).filter(Location.id == location_id).first()
+
 
 def get_locations(
     db: Session, 
     skip: int = 0, 
     limit: int = 100,
     approved_only: bool = True
-) -> List[Location]:
-
+) -> List[LocationResponse]:  
     query = db.query(Location)
     
     if approved_only:
         query = query.filter(Location.is_approved == True)
     
-    return query.offset(skip).limit(limit).all()
+    locations = query.offset(skip).limit(limit).all()
+    
 
-def create_location(db: Session, location_data: LocationCreate, user_id: int) -> Location:
+    return [
+        LocationResponse.model_validate(location) 
+        for location in locations
+    ]
 
+
+def create_location(db: Session, location_data: LocationCreate, user_id: int) -> LocationResponse:  # ⬅️ Измени тип
     db_location = Location(
         name=location_data.name,
         address=location_data.address,
@@ -36,27 +43,31 @@ def create_location(db: Session, location_data: LocationCreate, user_id: int) ->
     db.add(db_location)
     db.commit()
     db.refresh(db_location)
-    return db_location
+    
+
+    return LocationResponse.model_validate(db_location)
+
 
 def update_location(
     db: Session, 
     location_id: int, 
     location_data: LocationUpdate
-) -> Optional[Location]:
+) -> Optional[LocationResponse]:  
     location = db.query(Location).filter(Location.id == location_id).first()
     
     if not location:
         return None
     
-
-    update_data = location_data.dict(exclude_unset=True)
+    update_data = location_data.model_dump(exclude_unset=True)  
     for field, value in update_data.items():
         setattr(location, field, value)
     
     location.updated_at = func.now()
     db.commit()
     db.refresh(location)
-    return location
+    
+    return LocationResponse.model_validate(location) 
+
 
 def delete_location(db: Session, location_id: int) -> bool:
     location = db.query(Location).filter(Location.id == location_id).first()
@@ -75,7 +86,8 @@ def delete_location(db: Session, location_id: int) -> bool:
     db.commit()
     return True
 
-def approve_location(db: Session, location_id: int) -> Optional[Location]:
+
+def approve_location(db: Session, location_id: int) -> Optional[LocationResponse]:  
     location = db.query(Location).filter(Location.id == location_id).first()
     
     if not location:
@@ -85,7 +97,9 @@ def approve_location(db: Session, location_id: int) -> Optional[Location]:
     location.updated_at = func.now()
     db.commit()
     db.refresh(location)
-    return location
+    
+    return LocationResponse.model_validate(location) 
+
 
 def get_locations_nearby(
     db: Session, 
@@ -93,28 +107,39 @@ def get_locations_nearby(
     longitude: float, 
     radius_km: float = 5,
     limit: int = 50
-) -> List[Location]:
-
+) -> List[LocationResponse]:  
     distance_formula = func.acos(
         func.sin(func.radians(latitude)) * func.sin(func.radians(Location.latitude)) +
         func.cos(func.radians(latitude)) * func.cos(func.radians(Location.latitude)) *
         func.cos(func.radians(Location.longitude) - func.radians(longitude))
     ) * 6371 
     
-    return db.query(Location, distance_formula.label('distance_km'))\
+    results = db.query(Location, distance_formula.label('distance_km'))\
         .filter(Location.is_approved == True)\
         .filter(distance_formula <= radius_km)\
         .order_by(distance_formula)\
         .limit(limit)\
         .all()
 
-def get_user_locations(db: Session, user_id: int) -> List[Location]:
-    return db.query(Location)\
+    return [
+        LocationResponse.model_validate(location) 
+        for location, distance in results
+    ]
+
+
+def get_user_locations(db: Session, user_id: int) -> List[LocationResponse]:  # ⬅️ Измени тип
+    locations = db.query(Location)\
         .filter(Location.created_by == user_id)\
         .order_by(Location.created_at.desc())\
         .all()
+    
+    return [
+        LocationResponse.model_validate(location) 
+        for location in locations
+    ]
 
-def get_location_with_stats(db: Session, location_id: int) -> Optional[Dict]:
+
+def get_location_with_stats(db: Session, location_id: int) -> Optional[LocationWithStats]:  # ⬅️ Используй схему!
     location = db.query(Location).filter(Location.id == location_id).first()
     
     if not location:
@@ -129,12 +154,33 @@ def get_location_with_stats(db: Session, location_id: int) -> Optional[Dict]:
         Book.status == 'available'
     ).count()
     
-    return {
-        "location": location,
-        "stats": {
+
+    location_response = LocationResponse.model_validate(location)
+    
+    return LocationWithStats(
+        **location_response.model_dump(),
+        stats={
             "total_books": books_count,
             "available_books": active_books_count,
             "created_by_user_id": location.created_by,
             "is_approved": location.is_approved
         }
-    }
+    )
+
+
+
+def search_locations(
+    db: Session,
+    query: str,
+    skip: int = 0,
+    limit: int = 50
+) -> List[LocationResponse]:  
+    locations = db.query(Location).filter(
+        (Location.name.ilike(f"%{query}%")) | (Location.address.ilike(f"%{query}%")),
+        Location.is_approved == True
+    ).offset(skip).limit(limit).all()
+    
+    return [
+        LocationResponse.model_validate(location) 
+        for location in locations
+    ]

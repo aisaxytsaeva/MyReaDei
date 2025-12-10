@@ -1,5 +1,8 @@
+from datetime import datetime
 import re
+from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationError
+from core.permissions import UserRole
 
 
 class UserBase(BaseModel):
@@ -7,9 +10,13 @@ class UserBase(BaseModel):
     email: EmailStr
 
 
-class UserResponse(UserBase):
+class UserResponse(BaseModel):
     id: int
+    username: str
+    email: EmailStr
+    role: UserRole
     is_active: bool
+    created_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True
@@ -18,6 +25,7 @@ class UserRegister(BaseModel):
     username: str
     email: EmailStr
     password: str
+    role: UserRole = UserRole.USER
 
     @field_validator("password")
     @classmethod
@@ -35,9 +43,10 @@ class UserLogin(BaseModel):
 
 class Token(BaseModel):
     access_token: str
-    token_type: str
+    refresh_token: Optional[str] = None
+    token_type: str = "bearer"
 
 class TokenData(BaseModel):
-    username: str | None = None
-
+    username: Optional[str] = None
+    role: Optional[UserRole] = None
 

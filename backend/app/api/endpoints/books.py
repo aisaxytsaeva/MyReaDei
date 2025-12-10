@@ -4,6 +4,7 @@ from typing import List, Optional
 import shutil
 import os
 import uuid
+from core.permissions import UserRole
 from crud import book as books_crud
 from core.db import get_db
 from core.security import get_current_user
@@ -105,6 +106,18 @@ async def update_book(
     db: Session = Depends(get_db)
 ):
 
+    book = db.query(Book).filter(Book.id == book_id).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+
+    if (book.owner_id != current_user.id and 
+        current_user.role not in [UserRole.MODERATOR, UserRole.ADMIN]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to update this book"
+        )
+    
     try:
         if any([book_data.title, book_data.author, book_data.description, book_data.cover_image_uri, book_data.status]):
             updated_book = books_crud.update_book(db, book_id, book_data, current_user.id)
@@ -121,7 +134,6 @@ async def update_book(
             detail=str(e)
         )
 
-
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_book(
     book_id: int,
@@ -129,6 +141,18 @@ async def delete_book(
     db: Session = Depends(get_db)
 ):
 
+    book = db.query(Book).filter(Book.id == book_id).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+
+    if (book.owner_id != current_user.id and 
+        current_user.role != UserRole.ADMIN):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to delete this book"
+        )
+    
     try:
         success = books_crud.delete_book(db, book_id, current_user.id)
         if not success:
@@ -141,6 +165,7 @@ async def delete_book(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+
 
 
 @router.get("/search/", response_model=List[Catalog])
@@ -184,28 +209,25 @@ async def upload_book_cover(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
     
-    if book.owner_id != current_user.id:
+
+    if (book.owner_id != current_user.id and 
+        current_user.role not in [UserRole.MODERATOR, UserRole.ADMIN]):
         raise HTTPException(status_code=403, detail="Not enough permissions")
     
-
     if not cover_image.content_type.startswith('image/'):
         raise HTTPException(status_code=400, detail="File must be an image")
     
-
     file_extension = cover_image.filename.split('.')[-1]
     filename = f"{uuid.uuid4()}.{file_extension}"
     file_path = os.path.join(UPLOAD_DIR, filename)
     
-
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(cover_image.file, buffer)
     
-
     book.cover_image_uri = f"/static/covers/{filename}"
     db.commit()
     
