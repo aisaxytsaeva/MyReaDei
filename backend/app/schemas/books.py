@@ -32,7 +32,7 @@ class BookUpdate(BaseModel):
     description: Optional[str] = None
     cover_image_uri: Optional[str] = None
     status: Optional[str] = None
-    location_ids: Optional[List[int]] = None  # Добавляем обновление локаций
+    location_ids: Optional[List[int]] = None  # 
 
     @field_validator("status")
     @classmethod

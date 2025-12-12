@@ -25,7 +25,7 @@ class UserRegister(BaseModel):
     username: str
     email: EmailStr
     password: str
-    role: UserRole = UserRole.USER
+
 
     @field_validator("password")
     @classmethod

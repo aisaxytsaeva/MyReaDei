@@ -64,20 +64,21 @@ def get_users_books(db: Session, user_id: int, skip: int = 0, limit: int = 100) 
     return user_books
 
 
-def create_book(db: Session, book_data: BookCreate, current_user: User = Depends(get_current_user) ) -> Book:
+def create_book(db: Session, book_data: BookCreate, user_id: int) -> Book:
+
     db_book = Book(
         title=book_data.title,
         author=book_data.author,
         description=book_data.description,
         cover_image_uri=book_data.cover_image_uri,
-        owner_id=current_user.id,
-        
+        owner_id=user_id,  
+        status="available"  
     )
     db.add(db_book)
     db.commit()
+    db.refresh(db_book)  
+    
 
-    
-    
     for location_id in book_data.location_ids:
         book_location = BookLocation(
             book_id=db_book.id,
@@ -89,34 +90,31 @@ def create_book(db: Session, book_data: BookCreate, current_user: User = Depends
     return db_book
 
 def get_book_with_details(db: Session, book_id: int) -> Optional[BookResponse]:
-    
     book = db.query(Book).filter(Book.id == book_id).first()
     
     if not book:
         return None
     
-    
+
     readers_count = get_readers_count(db, book.id)
-    
     
     locations = db.query(Location.name).join(
         BookLocation, BookLocation.location_id == Location.id
     ).filter(BookLocation.book_id == book.id).all()
     
     location_names = [loc[0] for loc in locations]
-    
-    return BookResponse(
-        id=book.id,
-        title=book.title,
-        author=book.author,
-        description=book.description,
-        cover_image_uri=book.cover_image_uri,
-        readers_count=readers_count or 0,
-        locations=location_names,
-        owner_id=book.owner_id,
-        status=book.status
-    )
 
+    return {
+        "id": book.id,
+        "title": book.title,
+        "author": book.author,
+        "description": book.description or "",
+        "cover_image_uri": book.cover_image_uri or "",
+        "reader_count": readers_count or 0,  
+        "locations": location_names,
+        "owner_id": book.owner_id,
+        "status": book.status or "available"
+    }
 
 def delete_book(db: Session, book_id: int, user_id: int) -> bool:
 
