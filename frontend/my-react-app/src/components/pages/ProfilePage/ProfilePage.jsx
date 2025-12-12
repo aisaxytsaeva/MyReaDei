@@ -23,7 +23,6 @@ const ProfilePage = () => {
     navigate('/reservations');
   };
 
-  // Mock данные для книг
   const mockBooks = [
     { id: 1, title: 'Война и мир', author: 'Лев Толстой' },
     { id: 2, title: 'Преступление и наказание', author: 'Федор Достоевский' },
@@ -48,9 +47,8 @@ const ProfilePage = () => {
       
       <div className="profile-main-content">
         
-        {/* Левая колонка - профиль и кнопка выхода */}
+
         <div className="profile-left-column">
-          {/* Профиль с иконкой */}
           <div className="profile-card">
             <img src="/assets/profile.svg" alt="Профиль" />
             
@@ -61,7 +59,6 @@ const ProfilePage = () => {
             </div>
           </div>
 
-          {/* Кнопка выхода */}
           <Button 
             onClick={handleLogout}
             className="profile-logout-button"
@@ -70,10 +67,8 @@ const ProfilePage = () => {
           </Button>
         </div>
 
-        {/* Правая колонка - разделы с книгами */}
         <div className="profile-right-column">
-          
-          {/* Раздел "Мои книги" */}
+
           <div>
             <h2 className="profile-section-title">
               Мои книги
@@ -93,7 +88,6 @@ const ProfilePage = () => {
             </Button>
           </div>
 
-          {/* Раздел "Забронированные книги" */}
           <div>
             <h2 className="profile-section-title">
               Забронированные книги

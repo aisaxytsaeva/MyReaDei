@@ -45,9 +45,10 @@ const InfoPage = () => {
 
   const handleEdit = () => {
     console.log('Редактировать книгу:', book.id);
-    // Логика редактирования
+    navigate(`/edit-book/${book.id}`, {
+      state: { isEditing: true }
+    });
   };
-
   const handleDelete = () => {
     console.log('Удалить книгу:', book.id);
     if (confirm('Вы уверены, что хотите удалить эту книгу?')) {

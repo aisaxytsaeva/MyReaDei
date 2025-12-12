@@ -1,0 +1,419 @@
+/* Полноэкранная страница */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+.reserved-books-page {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* Фиксированный Header */
+.fixed-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  height: 80px;
+  width: 100%;
+}
+
+/* Основной контент занимает всё оставшееся пространство */
+.main-content {
+  flex: 1;
+  width: 100%;
+  margin-top: 80px; /* Отступ для фиксированного Header */
+  height: calc(100vh - 80px);
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+}
+
+/* Обёртка для центрирования контента */
+.content-wrapper {
+  width: 100%;
+  max-width: 1200px;
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* Шапка страницы */
+.reserved-books-header {
+  margin-bottom: 40px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+
+
+.page-title {
+  font-size: 24px;
+  color: #333;
+  margin: 0;
+  font-weight: 600;
+  flex: 1;
+  text-align: center;
+}
+
+/* Список забронированных книг */
+.reserved-books-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  margin-bottom: 40px;
+  flex: 1;
+}
+
+.reserved-book-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 25px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease;
+  gap: 30px;
+}
+
+.reserved-book-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12);
+}
+
+/* Контейнер для информации о книге */
+.book-info-section {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Контейнер для BookCard */
+.book-card-container {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.book-card-container:hover {
+  opacity: 0.9;
+}
+
+/* Используем стили BookCard без изменений */
+.book-card-container :global(.bookCard) {
+  margin: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.book-card-container :global(.bookCard:hover) {
+  background: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Информация о бронировании внизу */
+.reservation-details {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.days-left-info {
+  font-size: 16px;
+  color: #333;
+  padding: 8px 16px;
+  background: rgba(113, 23, 32, 0.08);
+  border-radius: 8px;
+  display: inline-block;
+  max-width: fit-content;
+}
+
+.days-count {
+  font-weight: 700;
+  color: #711720;
+}
+
+.days-count.warning {
+  color: #ff6b6b;
+}
+
+/* Кнопка "Сдать" 180x60 */
+.return-button {
+  width: 180px;
+  height: 60px;
+  min-width: 180px;
+  min-height: 60px;
+  background-color: #711720;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.return-button:hover {
+  background-color: #5a131c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(113, 23, 32, 0.3);
+}
+
+.return-button:active {
+  transform: translateY(0);
+}
+
+/* Стили для случая, когда нет книг */
+.no-books-message {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 25px;
+}
+
+.no-books-message p {
+  font-size: 20px;
+  color: #666;
+  margin: 0;
+}
+
+.browse-books-button {
+  background-color: #711720;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.browse-books-button:hover {
+  background-color: #5a131c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(113, 23, 32, 0.3);
+}
+
+/* Стилизация скроллбара */
+.main-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.main-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.main-content::-webkit-scrollbar-thumb {
+  background: #711720;
+  border-radius: 4px;
+}
+
+.main-content::-webkit-scrollbar-thumb:hover {
+  background: #5a131c;
+}
+
+/* Адаптивность */
+@media (max-width: 1200px) {
+  .content-wrapper {
+    max-width: 1000px;
+    padding: 25px 20px;
+  }
+}
+
+@media (max-width: 992px) {
+  .content-wrapper {
+    max-width: 800px;
+    padding: 25px 15px;
+  }
+  
+  .reserved-book-item {
+    padding: 20px;
+    gap: 20px;
+  }
+  
+  .days-left-info {
+    font-size: 15px;
+    padding: 7px 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* На мобильных меняем высоту Header и отступы */
+  .fixed-header {
+    height: 70px;
+  }
+  
+  .main-content {
+    margin-top: 70px;
+    height: calc(100vh - 70px);
+  }
+
+  .content-wrapper {
+    padding: 20px 15px;
+  }
+
+  .reserved-books-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 30px;
+  }
+
+  .page-title {
+    font-size: 32px;
+    text-align: left;
+    width: 100%;
+  }
+
+  .reserved-book-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 25px;
+    padding: 25px 20px;
+  }
+
+  .book-info-section {
+    width: 100%;
+  }
+
+  .reservation-details {
+    margin-top: 12px;
+  }
+
+  .days-left-info {
+    font-size: 15px;
+    padding: 6px 12px;
+    text-align: center;
+    max-width: 100%;
+  }
+
+  .return-button {
+    width: 100%;
+    max-width: 300px;
+    align-self: center;
+    height: 55px;
+    min-height: 55px;
+  }
+
+  .no-books-message {
+    padding: 40px 15px;
+  }
+  
+  .no-books-message p {
+    font-size: 18px;
+  }
+  
+  .browse-books-button {
+    padding: 10px 20px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 576px) {
+  .fixed-header {
+    height: 65px;
+  }
+  
+  .main-content {
+    margin-top: 65px;
+    height: calc(100vh - 65px);
+  }
+
+  .page-title {
+    font-size: 28px;
+  }
+
+  .reserved-book-item {
+    padding: 20px 15px;
+    gap: 20px;
+  }
+
+  .days-left-info {
+    font-size: 14px;
+    padding: 6px 10px;
+  }
+
+  .return-button {
+    height: 50px;
+    min-height: 50px;
+    font-size: 17px;
+    max-width: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .fixed-header {
+    height: 60px;
+  }
+  
+  .main-content {
+    margin-top: 60px;
+    height: calc(100vh - 60px);
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
+
+  .content-wrapper {
+    padding: 15px 10px;
+  }
+
+  .reserved-books-list {
+    gap: 20px;
+  }
+
+  .reserved-book-item {
+    padding: 15px 12px;
+    gap: 15px;
+  }
+
+  .days-left-info {
+    font-size: 13px;
+    padding: 5px 8px;
+  }
+
+  .return-button {
+    height: 45px;
+    min-height: 45px;
+    font-size: 16px;
+    max-width: 200px;
+  }
+}
