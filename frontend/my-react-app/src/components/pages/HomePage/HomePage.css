@@ -1,0 +1,47 @@
+.page {
+  width: 100vw;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.search-container {
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+}
+
+.popular-books-section {
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.section-title {
+  text-align: center;
+  margin: 30px 0 30px 0; /* Верхний и нижний отступы */
+  padding: 0; /* Явно убираем padding */
+  color: #333;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.books-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
