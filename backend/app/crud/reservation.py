@@ -26,7 +26,7 @@ def create_reservation(db: Session, reservation_data: ReservationCreate, borrowe
     db_reservation = Reservation(
         book_id=reservation_data.book_id,
         borrower_id=borrower_id,
-        selected_location_id=reservation_data.selected_location_id,
+        location_id=reservation_data.selected_location_id,
         status="pending",
         planned_return_days=planned_return_days_int  
     ) 

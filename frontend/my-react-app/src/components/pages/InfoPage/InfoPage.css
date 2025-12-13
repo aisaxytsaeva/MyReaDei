@@ -264,3 +264,50 @@
     font-size: 15px;
   }
 }
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: 15px;
+}
+
+.status-badge.available {
+  background-color: #28a745;
+  color: white;
+}
+
+.status-badge.reserved {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.reservation-status {
+  text-align: center;
+  padding: 10px;
+}
+
+.reservations-list {
+  margin-top: 10px;
+}
+
+.reservation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 8px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  border-left: 4px solid #007bff;
+}
+
+.reservation-reader {
+  font-weight: 500;
+}
+
+.reservation-dates {
+  font-size: 14px;
+  color: #666;
+}

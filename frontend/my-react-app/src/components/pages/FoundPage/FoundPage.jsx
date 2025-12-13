@@ -3,65 +3,109 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import BookCard from '../../UI/Book/BookCard';
 import SearchBar from '../../UI/Book/SearchBar';
 import Header from '../../UI/Header/Header';
+import { useAuth } from '../../../context/AuthContext';
 import './FoundPage.css'; 
 
 const FoundPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
   
   const initialSearchQuery = location.state?.searchQuery || '';
+  const initialSearchResults = location.state?.searchResults || [];
+  
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
-  const [filteredBooks, setFilteredBooks] = useState([]);
-  const isAuthenticated = false;
+  const [books, setBooks] = useState(initialSearchResults);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  
-  const allBooks = [
-    { id: 1, title: 'Мастер и Маргарита', author: 'Михаил Булгаков' },
-    { id: 2, title: '1984', author: 'Джордж Оруэлл' },
-    { id: 3, title: 'Преступление и наказание', author: 'Федор Достоевский' },
-    { id: 4, title: 'Гарри Поттер и философский камень', author: 'Дж. К. Роулинг' },
-    { id: 5, title: 'Война и мир', author: 'Лев Толстой' },
-    { id: 6, title: 'Маленький принц', author: 'Антуан де Сент-Экзюпери' },
-    { id: 7, title: 'Три товарища', author: 'Эрих Мария Ремарк' },
-    { id: 8, title: 'Унесенные ветром', author: 'Маргарет Митчелл' },
-    { id: 9, title: 'Гордость и предубеждение', author: 'Джейн Остин' },
-    { id: 10, title: 'Властелин колец', author: 'Дж. Р. Р. Толкин' },
-    { id: 11, title: 'Анна Каренина', author: 'Лев Толстой' },
-    { id: 12, title: 'Сто лет одиночества', author: 'Габриэль Гарсиа Маркес' }
-  ];
-
-  
-  const searchBooks = (query) => {
-    if (!query.trim()) {
-      return []; 
+  // Если пришли с поиском из HomePage, используем эти результаты
+  // Если нет - загружаем весь каталог
+  useEffect(() => {
+    if (initialSearchResults.length === 0 && !searchQuery) {
+      fetchAllBooks();
     }
+  }, []);
 
-    const lowerCaseQuery = query.toLowerCase();
-    
-    return allBooks.filter(book => {
-      const titleMatch = book.title.toLowerCase().includes(lowerCaseQuery);
-      const authorMatch = book.author.toLowerCase().includes(lowerCaseQuery);
+  const fetchAllBooks = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://127.0.0.1:8000/books/catalog?limit=50', {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        mode: 'cors'
+      });
       
-      return titleMatch || authorMatch;
-    });
+      if (response.ok) {
+        const data = await response.json();
+        const formattedBooks = data.map(book => ({
+          id: book.id,
+          title: book.title,
+          author: book.author,
+          cover_image_uri: book.cover_image_uri
+        }));
+        setBooks(formattedBooks);
+      } else {
+        setError('Не удалось загрузить книги');
+      }
+    } catch (err) {
+      console.error('Ошибка загрузки каталога:', err);
+      setError('Ошибка подключения к серверу');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  
-  useEffect(() => {
-    const results = searchBooks(searchQuery);
-    setFilteredBooks(results);
-  }, [searchQuery]);
-
-  const handleSearch = (query) => {
+  const handleSearch = async (query) => {
+    if (!query.trim()) {
+      // Если пустой запрос - показываем весь каталог
+      fetchAllBooks();
+      return;
+    }
+    
+    setLoading(true);
     setSearchQuery(query);
+    
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/books/search/?query=${encodeURIComponent(query)}&limit=50`,
+        {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          mode: 'cors'
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        const formattedBooks = data.map(book => ({
+          id: book.id,
+          title: book.title,
+          author: book.author,
+          cover_image_uri: book.cover_image_uri
+        }));
+        setBooks(formattedBooks);
+      } else {
+        setBooks([]);
+        setError('Поиск не дал результатов');
+      }
+    } catch (err) {
+      console.error('Ошибка поиска:', err);
+      setBooks([]);
+      setError('Ошибка при выполнении поиска');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBookAction = (bookId) => {
-    console.log('Бронирование книги:', bookId);
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+    navigate(`/book/${bookId}`);
   };
-
- 
-  const searchResults = filteredBooks;
 
   return (
     <div className="page">
@@ -71,12 +115,48 @@ const FoundPage = () => {
         <SearchBar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onSearchSubmit={handleSearch}
+          onSearchSubmit={() => handleSearch(searchQuery)}
         />
       </div>
 
+      {error && (
+        <div style={{
+          color: '#721c24',
+          backgroundColor: '#f8d7da',
+          border: '1px solid #f5c6cb',
+          borderRadius: '5px',
+          padding: '15px',
+          margin: '20px auto',
+          maxWidth: '800px',
+          textAlign: 'center'
+        }}>
+          {error}
+        </div>
+      )}
+
       <section className="popular-books-section">
-        {searchQuery ? (
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <div style={{ 
+              display: 'inline-block',
+              width: '40px',
+              height: '40px',
+              border: '4px solid #f3f3f3',
+              borderTop: '4px solid #3498db',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+            <p style={{ marginTop: '20px', color: '#666' }}>
+              {searchQuery ? `Ищем "${searchQuery}"...` : 'Загружаем книги...'}
+            </p>
+          </div>
+        ) : searchQuery || initialSearchQuery ? (
           <>
             <h2 
               className="section-title"
@@ -89,8 +169,8 @@ const FoundPage = () => {
                 width: '100%'
               }}
             >
-              {searchResults.length > 0 
-                ? `Нашли ${searchResults.length} вариант(ов)!` 
+              {books.length > 0 
+                ? `Нашли ${books.length} ${getBookWord(books.length)}` 
                 : 'Ничего не найдено'
               }
             </h2>
@@ -100,17 +180,15 @@ const FoundPage = () => {
               color: '#666',
               fontSize: '16px'
             }}>
-              По запросу: "{searchQuery}"
+              По запросу: "{searchQuery || initialSearchQuery}"
             </p>
             
-            {searchResults.length > 0 ? (
+            {books.length > 0 ? (
               <div className="books-grid">
-                {searchResults.map(book => (
+                {books.map(book => (
                   <BookCard
                     key={book.id}
                     book={book}
-                    isAuthenticated={isAuthenticated}
-                    onBookAction={handleBookAction}
                   />
                 ))}
               </div>
@@ -126,37 +204,96 @@ const FoundPage = () => {
                 }}>
                   Попробуйте изменить запрос или поискать другие книги
                 </p>
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    fetchAllBooks();
+                  }}
+                  style={{
+                    padding: '10px 20px',
+                    backgroundColor: '#711720',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Показать все книги
+                </button>
               </div>
             )}
           </>
         ) : (
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '40px' 
-          }}>
+          <>
             <h2 
               className="section-title"
               style={{
                 textAlign: 'center',
-                marginBottom: '20px',
+                margin: '30px 0 20px 0',
                 color: '#333',
                 fontSize: '28px',
-                fontWeight: '600'
+                fontWeight: '600',
+                width: '100%'
               }}
             >
-              Введите поисковый запрос
+              Каталог книг
             </h2>
             <p style={{ 
-              fontSize: '18px', 
-              color: '#666' 
+              textAlign: 'center', 
+              marginBottom: '30px', 
+              color: '#666',
+              fontSize: '16px'
             }}>
-              Начните поиск книг по названию или автору
+              Всего книг: {books.length}
             </p>
-          </div>
+            
+            {books.length > 0 ? (
+              <div className="books-grid">
+                {books.map(book => (
+                  <BookCard
+                    key={book.id}
+                    book={book}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '40px' 
+              }}>
+                <p style={{ 
+                  fontSize: '18px', 
+                  color: '#666' 
+                }}>
+                  Нет доступных книг в каталоге
+                </p>
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>
   );
+};
+
+// Вспомогательная функция для склонения слова "книга"
+const getBookWord = (count) => {
+  const lastDigit = count % 10;
+  const lastTwoDigits = count % 100;
+  
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
+    return 'книг';
+  }
+  
+  if (lastDigit === 1) {
+    return 'книга';
+  }
+  
+  if (lastDigit >= 2 && lastDigit <= 4) {
+    return 'книги';
+  }
+  
+  return 'книг';
 };
 
 export default FoundPage;

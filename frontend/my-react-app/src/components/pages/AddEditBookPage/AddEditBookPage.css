@@ -545,3 +545,63 @@ html, body {
     font-size: 15px;
   }
 }
+/* Добавьте эти стили в существующий CSS */
+
+.selected-locations {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  border-left: 4px solid #007bff;
+}
+
+.selected-locations ul {
+  margin: 5px 0 0 0;
+  padding-left: 20px;
+}
+
+.selected-locations li {
+  margin-bottom: 5px;
+  color: #555;
+}
+
+.location-select {
+  height: auto;
+  min-height: 120px;
+}
+
+.no-locations {
+  padding: 20px;
+  text-align: center;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  border: 1px dashed #dee2e6;
+}
+
+.error-message {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f8d7da;
+  color: #721c24;
+  border-radius: 5px;
+  border: 1px solid #f5c6cb;
+}
+
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.placeholder-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+  opacity: 0.5;
+}
+
+.placeholder-text {
+  color: #666;
+  text-align: center;
+}

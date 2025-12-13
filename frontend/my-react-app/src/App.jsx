@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import WelcomePage from './components/pages/WelcomePage/WelcomePage';
 import LoginPage from './components/pages/LogInPage/LoginPage';
-import RegistrationPage from './components/pages/RegistrationPage/RegistrationPage';
 import HomePage from './components/pages/HomePage/HomePage';
 import InfoPage from './components/pages/InfoPage/InfoPage';
 import FoundPage from './components/pages/FoundPage/FoundPage';
@@ -12,6 +11,7 @@ import './App.css';
 import MyBooksPage from './components/pages/MyBooksPage/MyBooksPage';
 import ReservedBooksPage from './components/pages/ReservedBooksPage/ReservedBooksPage';
 import AddEditBookPage from './components/pages/AddEditBookPage/AddEditBookPage';
+import RegistrationPage from './components/pages/RegistrationPage/RegistrationPage';
 
 const App = () => {
   return (

@@ -1,42 +1,48 @@
 import React from 'react';
-import Button from '../Button/Button';
 import './DeleteBookModal.css';
 
 const DeleteBookModal = ({ book, onClose, onConfirm }) => {
-  if (!book) return null;
+  const handleConfirm = () => {
+    if (onConfirm) {
+      onConfirm();
+    }
+    onClose();
+  };
 
   return (
-    <div className="delete-modal-overlay">
-      <div className="delete-modal-content">
-        <div className="delete-modal-header">
-          <h3>Вы не можете удалить книгу</h3>
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <h2 className="modal-title">Нельзя удалить книгу</h2>
+        <p className="modal-message">
+          Книга <strong>"{book.title}"</strong> в данный момент забронирована 
+          пользователем <strong>{book.reservedBy}</strong>.
+        </p>
+        
+        {book.daysLeft && book.daysLeft > 0 && (
+          <p className="modal-info">
+            Бронирование истекает через {book.daysLeft} дней.
+          </p>
+        )}
+        
+        <p className="modal-warning">
+          Вы не можете удалить книгу, пока она забронирована.
+          Дождитесь окончания бронирования или отмените его.
+        </p>
+        
+        <div className="modal-actions">
           <button 
             onClick={onClose}
-            className="delete-modal-close"
-            aria-label="Закрыть"
-          >
-            ×
-          </button>
-        </div>
-        <div className="delete-modal-body">
-          <p>
-            Книга <strong>«{book.title}»</strong> в настоящее время читается 
-            пользователем <strong>{book.reservedBy}</strong> и не может быть удалена. 
-            Дождитесь, пожалуйста, пока он сдаст книгу.
-          </p>
-        </div>
-        <div className="delete-modal-footer">
-          <Button 
-            onClick={onClose}
-            className="delete-modal-ok-button"
-            style={{ 
-              backgroundColor: '#711720', 
-              borderColor: '#711720',
-              color: 'white'
-            }}
+            className="modal-button cancel-button"
           >
             Понятно
-          </Button>
+          </button>
+          <button 
+            onClick={handleConfirm}
+            className="modal-button delete-button"
+            style={{ backgroundColor: '#dc3545' }}
+          >
+            Удалить принудительно
+          </button>
         </div>
       </div>
     </div>

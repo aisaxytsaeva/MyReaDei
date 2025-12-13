@@ -66,7 +66,7 @@ html, body {
 
 
 .page-title {
-  font-size: 24px;
+  font-size: 20px;
   color: #333;
   margin: 0;
   font-weight: 600;
@@ -90,7 +90,7 @@ html, body {
   justify-content: space-between;
   width: 100%;
   padding: 25px;
-  background: white;
+  background: #F0DAD2;
   border-radius: 15px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   transition: transform 0.3s ease;
@@ -416,4 +416,61 @@ html, body {
     font-size: 16px;
     max-width: 200px;
   }
+}
+
+.reservation-meta {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge:first-child {
+  background-color: #28a745;
+  color: white;
+}
+
+.owner-info {
+  font-size: 14px;
+  color: #666;
+}
+
+.date-range {
+  font-size: 14px;
+  color: #666;
+  margin-top: 5px;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cancel-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.3s;
+}
+
+.cancel-button:hover {
+  background-color: #e0a800 !important;
+}
+
+.refresh-button:hover {
+  background-color: #5a6268;
+}
+
+.back-button:hover {
+  background-color: #0069d9;
 }

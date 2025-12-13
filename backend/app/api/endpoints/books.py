@@ -67,7 +67,6 @@ async def create_book(
         book_response = books_crud.get_book_with_details(db, created_book.id)
         
         if not book_response:
-            # Если не можем получить детали, все равно возвращаем созданную книгу
             return {
                 "id": created_book.id,
                 "title": created_book.title,
@@ -89,7 +88,6 @@ async def create_book(
         logger = logging.getLogger(__name__)
         logger.error(f"Error in create_book: {str(e)}", exc_info=True)
         
-        # Очистка загруженного файла при ошибке
         if file_path and os.path.exists(file_path):
             try:
                 os.remove(file_path)
