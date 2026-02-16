@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from api.endpoints import auth_router, books_router, users_router, locations_router, reservation_router, statitics_router 
+from api.endpoints import auth_router, books_router, users_router, locations_router, reservation_router, statitics_router, admin_roles_router
 import time
 import logging
 
@@ -32,8 +32,8 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,          # НЕ "*"
-    allow_credentials=True,         # если используешь cookies/сессию
+    allow_origins=origins,          
+    allow_credentials=True,         
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -66,7 +66,8 @@ app.include_router(users_router, prefix="", tags=["users"])
 app.include_router(books_router, prefix="", tags=["books"])
 app.include_router(locations_router, prefix="", tags=["locations"])  
 app.include_router(reservation_router, prefix="", tags=["reservations"]) 
-app.include_router(statitics_router, prefix="", tags=["statistics"])  
+app.include_router(statitics_router, prefix="", tags=["statistics"]) 
+app.include_router(admin_roles_router, prefix="", tags=["admin_roles"]) 
 
 
 @app.get("/")

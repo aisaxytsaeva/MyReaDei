@@ -124,9 +124,6 @@ def delete_book(db: Session, book_id: int, user_id: int) -> bool:
         raise ValueError("Книга не найдена") 
     
 
-    if book.owner_id != user_id:
-        raise ValueError("Вы не являетесь владельцем этой книги. Удаление недоступно")
-
     active_reservations = db.query(Reservation).filter(
         Reservation.book_id == book_id, 
         Reservation.status.in_(["pending", "confirmed_by_owner", "handed_over"])  
