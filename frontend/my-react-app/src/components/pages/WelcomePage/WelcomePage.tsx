@@ -1,12 +1,12 @@
-import React from 'react';
-import Container from '../../UI/Container/Container';
-import Button from '../../UI/Button/Button';
-import './WelcomePage.css';
-import Header from '../../UI/Header/Header';
+import React from "react";
+import Button from "../../UI/Button/Button";
+import Header from "../../UI/Header/Header";
+import "./WelcomePage.css";
 
-const WelcomePage = () => {
-  const handleGetStarted = () => {
-    console.log('Начать читать!');
+
+const WelcomePage: React.FC = () => {
+  const handleGetStarted = (): void => {
+    console.log("Начать читать!");
   };
 
   return (
@@ -17,7 +17,7 @@ const WelcomePage = () => {
           <h1 className="welcome-title">
             Добро пожаловать на буккроссинг платформу MyReaDei!
           </h1>
-          
+
           <div className="features-section">
             <div className="feature-row feature-row-left">
               <div className="image-container">
@@ -27,15 +27,20 @@ const WelcomePage = () => {
               </div>
               <div className="text-container">
                 <h2>Словно настоящая библиотека!</h2>
-                <p>Огромный каталог со множеством книг на любой вкус. Каждый найдет то, что желает!</p>
+                <p>
+                  Огромный каталог со множеством книг на любой вкус. Каждый найдет
+                  то, что желает!
+                </p>
               </div>
             </div>
-
 
             <div className="feature-row feature-row-right">
               <div className="text-container">
                 <h2>Находите людей с общими интересами.</h2>
-                <p>Обменивайтесь любимыми историями с другими читателями! Добавляйте свои книги и бронируйте чужие.</p>
+                <p>
+                  Обменивайтесь любимыми историями с другими читателями!
+                  Добавляйте свои книги и бронируйте чужие.
+                </p>
               </div>
               <div className="image-container">
                 <div className="feature-icon-square">
@@ -43,6 +48,7 @@ const WelcomePage = () => {
                 </div>
               </div>
             </div>
+
             <div className="feature-row feature-row-left">
               <div className="image-container">
                 <div className="feature-icon-square">
@@ -51,17 +57,18 @@ const WelcomePage = () => {
               </div>
               <div className="text-container">
                 <h2>Рейтинги и статистика.</h2>
-                <p>Узнавайте, что популярно прямо сейчас! Становитесь самыми активными читателями сайта!</p>
+                <p>
+                  Узнавайте, что популярно прямо сейчас! Становитесь самыми
+                  активными читателями сайта!
+                </p>
               </div>
             </div>
           </div>
 
           <div className="cta-container">
-            <p className="cta-text">
-              Поделитесь своей библиотекой прямо сейчас!
-            </p>
-            <Button 
-              size="large" 
+            <p className="cta-text">Поделитесь своей библиотекой прямо сейчас!</p>
+            <Button
+              size="large"
               onClick={handleGetStarted}
               href="/home"
               className="cta-button"
