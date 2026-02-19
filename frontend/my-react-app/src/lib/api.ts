@@ -13,7 +13,6 @@ export type CreateBookPayload = {
   cover_image?: File | null;
 };
 
-/** Пользователь (минимально, расширяй по факту ответа бекенда) */
 export type User = {
   id: Id;
   username?: string;
@@ -28,8 +27,24 @@ export type Location = {
   id?: Id;
   name?: string;
   address?: string;
-  description?: string;
   [key: string]: unknown;
+};
+
+export type LocationServer = {
+  id: number;
+  name: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  is_approved?: boolean;
+  created_by?: number;
+};
+
+export type CreateLocationPayload = {
+  name: string;
+  address: string;
+  latitude: "0";
+  longitude: "0";
 };
 
 export type Book = {
@@ -80,6 +95,8 @@ export type CreateReservationPayload = {
   planned_return_days: "7" | "14" | "30" | "60";
   selected_location_id: number;
 };
+
+
 
 /** Axios instance */
 const api: AxiosInstance = axios.create({
@@ -136,7 +153,6 @@ export const bookApi = {
     fd.append("author", bookData.author);
     fd.append("description", bookData.description ?? "");
 
-    // ВАЖНО: location_ids надо добавлять несколько раз одним и тем же ключом
     for (const id of bookData.location_ids) {
       fd.append("location_ids", String(id));
     }
@@ -150,7 +166,6 @@ export const bookApi = {
       headers: { "Content-Type": undefined as any },
     });
   },
-
 
   updateBook: (
     id: Id,
@@ -226,9 +241,26 @@ export const bookApi = {
   getUserById: (id: Id): Promise<AxiosResponse<User>> =>
     api.get<User>(`/users/${id}`),
 
-  // --- Locations / Statistics ---
+
   getLocations: (): Promise<AxiosResponse<Location[]>> =>
     api.get<Location[]>("/locations"),
+
+  createLocation: (
+    payload: CreateLocationPayload
+  ): Promise<AxiosResponse<LocationServer>> =>
+    api.post<LocationServer>('/locations/', payload),
+
+  getPendingLocations: (skip = 0, limit = 100) =>
+  api.get(`/locations/locations/pending-list`, { params: { skip, limit } }),
+
+  approveLocation: (locationId: number) =>
+  api.post(`/locations/locations/${locationId}/approve`),
+
+  rejectLocation: (locationId: number) =>
+  api.delete(`/locations/locations/${locationId}/reject`),
+
+  deleteLocation: (locationId: number) =>
+    api.delete<void>(`/locations/${locationId}`),
 
   getMyUserBooks: (params?: { limit?: number; skip?: number }) => {
     const cleaned: Record<string, number> = {};
@@ -237,10 +269,19 @@ export const bookApi = {
     return api.get<Book[]>("/users/book/my", { params: cleaned });
   },
 
-
-
   getStatistics: (): Promise<AxiosResponse<Statistics>> =>
     api.get<Statistics>("/statistics"),
+
+
+  adminGetUsers: () => api.get("/admin/users"),
+  adminSetUserRole: (userId: Id, role: string) =>
+  api.put(`/admin/users/${userId}/role`, { role }),
+
+  adminGetBooksForDelete: () => api.get("/admin/books/for-delete"),
+
+  markBookDelete: (id: Id) => api.post(`/books/${id}/mark-delete`),
+  unmarkBookDelete: (id: Id) => api.post(`/books/${id}/unmark-delete`),
+
 };
 
 export default api;

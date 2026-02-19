@@ -1,6 +1,9 @@
+from typing import List
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from schemas.books import BookForDelete
+from crud import book as books_crud
 from core.db import get_db
 from core.security import get_current_user, require_admin, get_user_permissions
 from models.users import User
@@ -77,3 +80,26 @@ async def admin_get_user_permissions(
     if not u:
         return {"permissions": []}
     return {"permissions": get_user_permissions(u)}
+
+
+
+@router.get("/books/for-delete", response_model=List[BookForDelete])
+def list_books_marked_for_deletion(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    books = books_crud.get_books_marked_for_deletion(db=db, skip=skip, limit=limit)
+
+
+    return [
+        BookForDelete(
+            id=b.id,
+            title=b.title or "",
+            author=b.author or "",
+            cover_image_uri=b.cover_image_uri or "",
+            status=b.status or "",
+        )
+        for b in books
+    ]

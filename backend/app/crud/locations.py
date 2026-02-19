@@ -1,3 +1,4 @@
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
@@ -87,6 +88,20 @@ def delete_location(db: Session, location_id: int) -> bool:
     return True
 
 
+def get_locations_pending_approval(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+) -> List[Location]:
+    return (
+        db.query(Location)
+        .filter(Location.is_approved == False)  # noqa: E712
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
 def approve_location(db: Session, location_id: int) -> Optional[LocationResponse]:  
     location = db.query(Location).filter(Location.id == location_id).first()
     
@@ -100,6 +115,13 @@ def approve_location(db: Session, location_id: int) -> Optional[LocationResponse
     
     return LocationResponse.model_validate(location) 
 
+def reject_location(db: Session, location_id: int) -> None:
+    loc = db.query(Location).filter(Location.id == location_id).first()
+    if not loc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location not found")
+
+    db.delete(loc)
+    db.commit()
 
 def get_locations_nearby(
     db: Session, 

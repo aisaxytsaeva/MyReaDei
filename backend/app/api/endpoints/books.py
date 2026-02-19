@@ -7,7 +7,7 @@ import uuid
 from core.permissions import UserRole
 from crud import book as books_crud
 from core.db import get_db
-from core.security import get_current_user
+from core.security import get_current_user, require_admin
 from models.books import Book
 from models.users import User
 from schemas.books import BookCreate, BookResponse, BookUpdate, Catalog
@@ -245,3 +245,28 @@ async def upload_book_cover(
     db.commit()
     
     return {"cover_image_uri": book.cover_image_uri}
+
+@router.post("/{book_id}/mark-delete")
+async def mark_delete_book(
+    book_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.role not in [UserRole.ADMIN, UserRole.MODERATOR]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin or Moderator role required")
+
+    book = books_crud.update_status_by_admin(db, book_id, "marked_for_deletion")
+    return book
+
+
+@router.post("/{book_id}/unmark-delete")
+async def unmark_delete_book(
+    book_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+
+    book = books_crud.update_status_by_admin(db, book_id, "available")
+    return book

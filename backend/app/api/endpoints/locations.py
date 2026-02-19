@@ -5,8 +5,8 @@ from typing import List
 from core.permissions import UserRole
 from crud import locations
 from core.db import get_db
-from core.security import get_current_user
-from models.locations import Location
+from core.security import get_current_user, require_moderator_or_admin
+
 from models.users import User
 from schemas.location import LocationCreate, LocationResponse, LocationUpdate, LocationWithStats
 
@@ -98,7 +98,7 @@ async def update_location(
     updated_location = locations.update_location(db, location_id, location_data)
     return updated_location
 
-@router.post("/{location_id}/approve", response_model=LocationResponse)
+@router.post("/locations/{location_id}/approve", response_model=LocationResponse)
 async def approve_location(
     location_id: int,
     current_user: User = Depends(get_current_user),
@@ -119,29 +119,23 @@ async def approve_location(
         )
     return location
 
-@router.post("/{location_id}/reject", response_model=LocationResponse)
-async def reject_location(
+@router.delete("/locations/{location_id}/reject")
+def reject_location(
     location_id: int,
-    current_user: User = Depends(get_current_user),  
-    db: Session = Depends(get_db)
+    current_user: User = Depends(require_moderator_or_admin),
+    db: Session = Depends(get_db),
 ):
+    locations.reject_location(db=db, location_id=location_id)
+    return {"message": "Location rejected and deleted"}
 
-    if current_user.role not in [UserRole.MODERATOR, UserRole.ADMIN]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Moderator or admin role required"
-        )
-    
-    location = locations.get_location(db, location_id)
-    if not location:
-        raise HTTPException(status_code=404, detail="Location not found")
-    
-    location.is_approved = False
-    location.updated_at = func.now()
-    db.commit()
-    db.refresh(location)
-    
-    return location
+@router.get("/locations/pending-list", response_model=List[LocationResponse])
+def list_locations_pending(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    current_user: User = Depends(require_moderator_or_admin),
+    db: Session = Depends(get_db),
+):
+    return locations.get_locations_pending_approval(db=db, skip=skip, limit=limit)
 
 @router.delete("/{location_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_location(

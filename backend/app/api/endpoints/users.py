@@ -5,7 +5,7 @@ from requests import Session
 from schemas.auth import UserResponse
 from core.db import get_db
 from core.security import get_current_user
-from crud.user import update_user
+from crud.user import get_user_by_id, update_user
 from models.users import User
 from schemas.books import Catalog
 from schemas.user import  UserProfile, UserUpdate
@@ -71,16 +71,13 @@ async def get_my_books(
 
 
 @router.get("/{user_id}", response_model=UserResponse)
-async def get_user_by_id(
+async def get_user(
     user_id: int,
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).filter(User.id == user_id).first()
+    user = get_user_by_id(db, user_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
     return UserResponse(
         id=user.id,

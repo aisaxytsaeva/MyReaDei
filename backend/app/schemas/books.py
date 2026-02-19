@@ -37,8 +37,8 @@ class BookUpdate(BaseModel):
     @field_validator("status")
     @classmethod
     def validate_status(cls, v):
-        if v and v not in ["available", "unavailable", "reserved"]:
-            raise ValueError("Status must be 'available', 'unavailable' or 'reserved'")
+        if v and v not in ["available", "unavailable", "reserved", "marked_for_deletion"]:
+            raise ValueError("Status must be 'available', 'unavailable' or 'reserved' or 'marked_for_deletion'")
         return v
 
 class DeleteBook(BaseModel):
@@ -48,4 +48,13 @@ class DeleteBookResponse(BaseModel):
     book_id: int
     success: bool
     message: str = "Книга успешно удалена"
+
+
+class BookForDelete(BaseModel):
+    id: int
+    title: str
+    author: str
+    cover_image_uri: str
+    status: str
+
 

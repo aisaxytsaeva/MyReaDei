@@ -1,4 +1,3 @@
-// src/components/pages/AddEditBookPage/AddEditBookPage.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
@@ -32,7 +31,6 @@ function extractAxiosErrorMessage(err: any): string {
   if (typeof detail === "string") return detail;
 
   if (Array.isArray(detail)) {
-    // FastAPI validation errors (422) often come as array of objects
     const msgs = detail
       .map((e) => e?.msg || e?.message || e?.detail)
       .filter(Boolean);
@@ -47,7 +45,7 @@ const AddEditBookPage: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const { user, token } = useAuth();
 
-  const isEditMode = !!id;
+  const isEditMode = Boolean(id);
 
   const [formData, setFormData] = useState<FormState>({
     title: "",
@@ -59,12 +57,11 @@ const AddEditBookPage: React.FC = () => {
   });
 
   const [locations, setLocations] = useState<Location[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [loadingLocations, setLoadingLocations] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [loadingLocations, setLoadingLocations] = useState(true);
+  const [error, setError] = useState("");
   const [bookData, setBookData] = useState<BookForEdit | null>(null);
 
-  // загрузка локаций + книги (если edit)
   useEffect(() => {
     void fetchLocations();
     if (isEditMode) void fetchBookData();
@@ -117,10 +114,14 @@ const AddEditBookPage: React.FC = () => {
         author: data.author ?? "",
         description: data.description ?? "",
         location_ids: Array.isArray(data.locations)
-          ? data.locations.map((loc) => Number(loc.id)).filter((n) => Number.isFinite(n))
+          ? data.locations
+              .map((loc) => Number(loc.id))
+              .filter((n) => Number.isFinite(n))
           : [],
         coverImage: null,
-        coverPreview: data.cover_image_uri ? `http://127.0.0.1:8000${data.cover_image_uri}` : null,
+        coverPreview: data.cover_image_uri
+          ? `http://127.0.0.1:8000${data.cover_image_uri}`
+          : null,
       }));
     } catch (err: any) {
       const msg = extractAxiosErrorMessage(err);
@@ -134,10 +135,7 @@ const AddEditBookPage: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ): void => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -155,27 +153,17 @@ const AddEditBookPage: React.FC = () => {
     }
 
     const previewUrl = URL.createObjectURL(file);
-
-    setFormData((prev) => ({
-      ...prev,
-      coverImage: file,
-      coverPreview: previewUrl,
-    }));
+    setFormData((prev) => ({ ...prev, coverImage: file, coverPreview: previewUrl }));
   };
 
   const handleRemoveImage = (): void => {
-    setFormData((prev) => ({
-      ...prev,
-      coverImage: null,
-      coverPreview: null,
-    }));
+    setFormData((prev) => ({ ...prev, coverImage: null, coverPreview: null }));
   };
 
   const handleLocationChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
     const selectedIds = Array.from(e.target.selectedOptions).map((opt) =>
       Number.parseInt(opt.value, 10)
     );
-
     setFormData((prev) => ({
       ...prev,
       location_ids: selectedIds.filter((n) => Number.isFinite(n)),
@@ -201,7 +189,6 @@ const AddEditBookPage: React.FC = () => {
 
     try {
       if (isEditMode && id) {
-        // Обновление текста/локаций (JSON)
         await bookApi.updateBook(id, {
           title: formData.title,
           author: formData.author,
@@ -209,7 +196,6 @@ const AddEditBookPage: React.FC = () => {
           location_ids: formData.location_ids,
         });
 
-        // Если выбрали новое изображение в режиме редактирования — грузим отдельным эндпоинтом
         if (formData.coverImage) {
           await bookApi.uploadCover(id, formData.coverImage);
         }
@@ -219,15 +205,12 @@ const AddEditBookPage: React.FC = () => {
         return;
       }
 
-      // Создание: отправляем сразу FormData (включая cover_image) через bookApi.createBook
-      // ВАЖНО: createBook в api.ts должен быть переделан на FormData и ждать ключи:
-      // title, author, description, location_ids (много раз), cover_image (File)
       await bookApi.createBook({
         title: formData.title,
         author: formData.author,
         description: formData.description || "",
         location_ids: formData.location_ids,
-        cover_image: formData.coverImage, // ✅ передаём файл
+        cover_image: formData.coverImage,
       } as any);
 
       alert("Книга успешно добавлена!");
@@ -246,7 +229,10 @@ const AddEditBookPage: React.FC = () => {
     else navigate("/mybooks");
   };
 
-  // не авторизован
+  const handleGoCreateLocation = (): void => {
+    navigate("/locations/create");
+  };
+
   if (!user || !token) {
     return (
       <div className="add-edit-book-page">
@@ -375,7 +361,6 @@ const AddEditBookPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Правая колонка */}
               <div className="form-right-column">
                 <div className="form-section">
                   <h3 className="section-title">Название *</h3>
@@ -420,7 +405,6 @@ const AddEditBookPage: React.FC = () => {
 
                 <div className="form-section">
                   <h3 className="section-title">Место хранения *</h3>
-
                   <div className="location-container">
                     {loadingLocations ? (
                       <p>Загрузка локаций...</p>
@@ -429,23 +413,33 @@ const AddEditBookPage: React.FC = () => {
                         <div className="location-select-wrapper">
                           <select
                             multiple
-                            value={formData.location_ids.map((x) => String(x))}
+                            value={formData.location_ids.map(String)}
                             onChange={handleLocationChange}
                             className="location-select"
                             required
                             disabled={loading}
                             size={4}
                           >
-                            <option value="" disabled>
-                              Выберите место хранения (можно выбрать несколько, удерживая Ctrl)
-                            </option>
                             {locations.map((loc) => (
                               <option key={String(loc.id)} value={String(loc.id)}>
                                 {loc.name} - {loc.address}
                               </option>
                             ))}
                           </select>
-                          <div className="select-arrow">▼</div>
+                        </div>
+
+                        <div className="create-location-hint">
+                          <div className="create-location-hint-text">
+                            Не нашли нужного адреса? создайте его сами
+                          </div>
+                          <button
+                            type="button"
+                            className="create-location-btn"
+                            onClick={handleGoCreateLocation}
+                            disabled={loading}
+                          >
+                            Создать локацию
+                          </button>
                         </div>
 
                         {formData.location_ids.length > 0 && (
@@ -483,6 +477,20 @@ const AddEditBookPage: React.FC = () => {
                         >
                           Повторить загрузку
                         </Button>
+
+                        <div className="create-location-hint">
+                          <div className="create-location-hint-text">
+                            Не нашли нужного адреса? создайте его сами
+                          </div>
+                          <button
+                            type="button"
+                            className="create-location-btn"
+                            onClick={handleGoCreateLocation}
+                            disabled={loading}
+                          >
+                            Создать локацию
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

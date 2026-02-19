@@ -30,7 +30,7 @@ type BookDetails = Book & {
   description: string;
   cover_image_uri?: string | null;
   owner_id?: Id | null;
-  status: "available" | "reserved" | "unavailable" | string;
+  status: string;
   locations: LocationItem[];
   reader_count: number;
 };
@@ -41,6 +41,21 @@ type OwnerInfo = {
   email?: string;
   isCurrentUser?: boolean;
 };
+
+function extractAxiosErrorMessage(err: any): string {
+  const detail = err?.response?.data?.detail;
+
+  if (typeof detail === "string") return detail;
+
+  if (Array.isArray(detail)) {
+    const msgs = detail
+      .map((e) => e?.msg || e?.message || e?.detail)
+      .filter(Boolean);
+    if (msgs.length) return msgs.join(", ");
+  }
+
+  return err?.message ?? "Ошибка";
+}
 
 const InfoPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -59,19 +74,21 @@ const InfoPage: React.FC = () => {
     null
   );
 
-  const getUserId = (userObj: unknown): Id | null => {
-    if (!userObj || typeof userObj !== "object") return null;
-    const u: any = userObj;
+  const userId = useMemo<Id | null>(() => {
+    if (!user || typeof user !== "object") return null;
+    const u: any = user;
+    return u.id ?? u.userId ?? u._id ?? u.user_id ?? null;
+  }, [user]);
 
-    if (u.id !== undefined) return u.id;
-    if (u.userId !== undefined) return u.userId;
-    if (u._id !== undefined) return u._id;
-    if (u.user_id !== undefined) return u.user_id;
+  const role = (user as any)?.role as string | undefined;
+  const isAdmin = role === "admin";
+  const isModerator = role === "moderator";
 
-    return null;
-  };
+  const isOwner =
+    !!userId && !!book?.owner_id && String(userId) === String(book.owner_id);
 
-  const userId = useMemo(() => getUserId(user), [user]);
+  const isReservedByUser = !!userReservation;
+  const isRegularUser = !!user && !isOwner && !isAdmin && !isModerator;
 
   useEffect(() => {
     if (id) void fetchBookDetails();
@@ -80,31 +97,34 @@ const InfoPage: React.FC = () => {
 
   const fetchOwnerInfo = async (ownerId: Id): Promise<void> => {
     try {
-      // Если владелец — это текущий пользователь, не делаем запрос
-      if (user && userId && String(userId) === String(ownerId)) {
+      // если владелец — текущий пользователь
+      if (userId && String(userId) === String(ownerId)) {
         setOwnerInfo({
           id: ownerId,
-          name: (user as any).name || (user as any).username || "Вы",
+          name: (user as any)?.name || (user as any)?.username || "Вы",
+          email: (user as any)?.email,
           isCurrentUser: true,
         });
         return;
       }
 
-      // Нужен метод bookApi.getUserById (добавим ниже)
       const resp = await bookApi.getUserById(ownerId);
       const owner = resp.data as ApiUser;
 
       setOwnerInfo({
         id: owner.id,
-        name: (owner as any).username || `Пользователь ${ownerId}`,
-        email: (owner as any).email as string | undefined,
+        name:
+          (owner as any)?.name ||
+          (owner as any)?.username ||
+          `Пользователь ${String(ownerId)}`,
+        email: (owner as any)?.email as string | undefined,
         isCurrentUser: !!userId && String(userId) === String(owner.id),
       });
     } catch (e) {
       console.warn("Не удалось получить данные владельца:", e);
       setOwnerInfo({
         id: ownerId,
-        name: `Владелец #${ownerId}`,
+        name: `Владелец #${String(ownerId)}`,
         isCurrentUser: false,
       });
     }
@@ -114,7 +134,6 @@ const InfoPage: React.FC = () => {
     try {
       if (!token || !id) return;
 
-      // есть bookApi.getReservations() => /reservations/my
       const resp = await bookApi.getReservations();
       const reservations = resp.data as Reservation[];
 
@@ -127,7 +146,7 @@ const InfoPage: React.FC = () => {
 
       setUserReservation(active ?? null);
     } catch (e) {
-      console.error("❌ Ошибка загрузки бронирований:", e);
+      console.error("Ошибка загрузки бронирований:", e);
     }
   };
 
@@ -137,8 +156,6 @@ const InfoPage: React.FC = () => {
       setError("");
 
       if (!id) return;
-
-      // есть bookApi.getBookById(id)
       const resp = await bookApi.getBookById(id);
       const data = resp.data as any;
 
@@ -147,31 +164,28 @@ const InfoPage: React.FC = () => {
         title: data.title || "Без названия",
         author: data.author || "Неизвестный автор",
         description: data.description || "Нет описания",
-        cover_image_uri: data.cover_image_uri,
+        cover_image_uri: data.cover_image_uri ?? null,
         owner_id: data.owner_id ?? null,
-        status: (data.status || "available") as BookDetails["status"],
+        status: (data.status || "available") as string,
         locations: (data.locations || []) as LocationItem[],
         reader_count: data.reader_count || 0,
       };
 
       setBook(formattedBook);
 
-      if (data.owner_id) await fetchOwnerInfo(data.owner_id);
+      if (formattedBook.owner_id) await fetchOwnerInfo(formattedBook.owner_id);
       if (token) await fetchUserReservations();
     } catch (e: any) {
       const status = e?.response?.status as number | undefined;
       setError(
-        status ? `Книга не найдена или недоступна (${status})` : "Ошибка подключения к серверу"
+        status
+          ? `Книга не найдена или недоступна (${status})`
+          : extractAxiosErrorMessage(e) || "Ошибка подключения к серверу"
       );
     } finally {
       setLoading(false);
     }
   };
-
-  const isOwner =
-    !!user && !!book && !!userId && String(userId) === String(book.owner_id);
-
-  const isReservedByUser = !!userReservation;
 
   const handleMapClick = (): void => {
     if (book && book.locations && book.locations.length > 0) {
@@ -179,9 +193,8 @@ const InfoPage: React.FC = () => {
       const locationText =
         typeof location === "string"
           ? location
-          : location.name ||
+          :
             location.address ||
-            location.description ||
             "Место хранения";
 
       const encoded = encodeURIComponent(locationText);
@@ -191,6 +204,60 @@ const InfoPage: React.FC = () => {
       );
     } else {
       alert("Место хранения не указано");
+    }
+  };
+
+  const handleLogin = () => navigate("/auth");
+
+  const handleEdit = (): void => {
+    if (!book) return;
+    navigate(`/edit-book/${book.id}`, {
+      state: {
+        bookId: book.id,
+        initialData: {
+          title: book.title,
+          author: book.author,
+          description: book.description,
+        },
+      },
+    });
+  };
+
+  const handleDelete = async (): Promise<void> => {
+    if (!book || !window.confirm("Вы уверены, что хотите удалить эту книгу?")) {
+      return;
+    }
+    try {
+      await bookApi.deleteBook(book.id);
+      alert("Книга успешно удалена!");
+      navigate("/home");
+    } catch (e: any) {
+      const msg = extractAxiosErrorMessage(e);
+      alert(`Ошибка удаления: ${msg}`);
+    }
+  };
+
+  const handleMarkDelete = async (): Promise<void> => {
+    if (!book) return;
+    try {
+      await bookApi.markBookDelete(book.id);
+      alert("Книга помечена на удаление");
+      await fetchBookDetails();
+    } catch (e: any) {
+      const msg = extractAxiosErrorMessage(e);
+      alert(`Ошибка: ${msg}`);
+    }
+  };
+
+  const handleUnmarkDelete = async (): Promise<void> => {
+    if (!book) return;
+    try {
+      await bookApi.unmarkBookDelete(book.id);
+      alert("Пометка удаления снята");
+      await fetchBookDetails();
+    } catch (e: any) {
+      const msg = extractAxiosErrorMessage(e);
+      alert(`Ошибка: ${msg}`);
     }
   };
 
@@ -221,7 +288,7 @@ const InfoPage: React.FC = () => {
         return;
       }
 
-      // 1) пробуем получить локации книги (добавим метод ниже)
+     
       let selectedLocationId: number = 1;
       try {
         const locResp = await bookApi.getBookLocations(book.id);
@@ -230,86 +297,32 @@ const InfoPage: React.FC = () => {
           selectedLocationId = (locs[0] as any).id;
         }
       } catch {
-        // ok, оставляем 1
+        
       }
 
-      // 2) нормализуем к enum
+      
       let planned_return_days: "7" | "14" | "30" | "60";
       if (days <= 7) planned_return_days = "7";
       else if (days <= 14) planned_return_days = "14";
       else if (days <= 30) planned_return_days = "30";
       else planned_return_days = "60";
 
-      // 3) создаём бронь (добавим метод ниже)
+      
       await bookApi.createReservation({
         book_id: Number(book.id),
         planned_return_days,
         selected_location_id: selectedLocationId,
       });
 
-      alert(
-        `Книга "${book.title}" успешно забронирована на ${planned_return_days} дней!`
-      );
+      alert(`Книга "${book.title}" успешно забронирована на ${planned_return_days} дней!`);
       setIsBookingMenuOpen(false);
       await fetchBookDetails();
     } catch (e: any) {
-      const detail =
-        e?.response?.data?.detail ||
-        e?.message ||
-        "Ошибка подключения к серверу при бронировании";
-      alert(`Ошибка при бронировании: ${String(detail)}`);
+      const detail = extractAxiosErrorMessage(e);
+      alert(`Ошибка при бронировании: ${detail}`);
     }
   };
 
-  const handleLogin = () => navigate("/auth");
-
-
-  const handleEdit = (): void => {
-    if (!book) return;
-    navigate(`/edit-book/${book.id}`, {
-      state: {
-        bookId: book.id,
-        initialData: {
-          title: book.title,
-          author: book.author,
-          description: book.description,
-        },
-      },
-    });
-  };
-
-  const handleDelete = async (): Promise<void> => {
-    if (!book || !window.confirm("Вы уверены, что хотите удалить эту книгу?")) {
-      return;
-    }
-    try {
-      await bookApi.deleteBook(book.id);
-      alert("Книга успешно удалена!");
-      navigate("/home");
-    } catch (e: any) {
-      const msg = e?.response?.data?.detail || (await Promise.resolve(e?.response?.data)) || e?.message;
-      alert(`Ошибка удаления: ${String(msg ?? "unknown")}`);
-    }
-  };
-
-  const handleCancelReservation = async (): Promise<void> => {
-    if (
-      !userReservation ||
-      !window.confirm("Вы уверены, что хотите отменить бронирование?")
-    ) {
-      return;
-    }
-    try {
-      // добавим метод cancelReservation ниже
-      await bookApi.cancelReservation(userReservation.id);
-      alert("Бронирование отменено");
-      setUserReservation(null);
-      await fetchBookDetails();
-    } catch (e: any) {
-      const msg = e?.response?.data?.detail || e?.message || "Ошибка при отмене бронирования";
-      alert(`Ошибка отмены: ${String(msg)}`);
-    }
-  };
 
   if (loading) {
     return (
@@ -367,6 +380,11 @@ const InfoPage: React.FC = () => {
     );
   }
 
+  const canMarkDelete = (isAdmin || isModerator) && book.status !== "marked_for_deletion";
+  const canUnmarkDelete = isAdmin && book.status === "marked_for_deletion";
+  const canDeleteHard = isAdmin; 
+  console.log("LOCATIONS RAW:", book?.locations);
+
   return (
     <div className="info-page">
       <BookingMenu
@@ -408,54 +426,90 @@ const InfoPage: React.FC = () => {
                 <Button onClick={handleLogin} className="action-button login">
                   Войти для бронирования
                 </Button>
-              ) : isOwner ? (
+              ) : (
                 <>
-                  <div
-                    style={{
-                      textAlign: "center",
-                      marginBottom: "15px",
-                      padding: "10px",
-                      backgroundColor: "#d4edda",
-                      color: "#155724",
-                      borderRadius: "5px",
-                    }}
-                  >
-                    <strong>Это ваша книга</strong>
-                  </div>
-                  <div className="owner-buttons">
-                    <Button onClick={handleEdit} className="action-button edit">
-                      Редактировать
+                  {/* Владелец */}
+                  {isOwner && (
+                    <>
+                      <div
+                        style={{
+                          textAlign: "center",
+                          marginBottom: "15px",
+                          padding: "10px",
+                          backgroundColor: "#d4edda",
+                          color: "#155724",
+                          borderRadius: "5px",
+                        }}
+                      >
+                        <strong>Это ваша книга</strong>
+                      </div>
+                      <div className="owner-buttons">
+                        <Button onClick={handleEdit} className="action-button edit">
+                          Редактировать
+                        </Button>
+                        <Button
+                          onClick={async () => {
+                            // владелец может удалять свою книгу как раньше
+                            await handleDelete();
+                          }}
+                          variant="secondary"
+                          className="action-button delete"
+                        >
+                          Удалить
+                        </Button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Обычный пользователь (не владелец, не админ, не модератор) */}
+                  {!isOwner && isRegularUser && book.status === "available" && !isReservedByUser && (
+                    <Button onClick={handleReserve} className="action-button reserve">
+                      Забронировать
                     </Button>
+                  )}
+
+                  {!isOwner && isRegularUser && isReservedByUser && (
+                    <div className="reservation-status">
+                      <p style={{ marginBottom: "10px", color: "#28a745" }}>
+                        Вы забронировали эту книгу
+                      </p>
+                      </div>
+                  )}
+
+                  {!isOwner &&
+                    isRegularUser &&
+                    book.status !== "available" &&
+                    !isReservedByUser && (
+                      <p style={{ color: "#dc3545", textAlign: "center" }}>
+                        Книга в данный момент недоступна
+                      </p>
+                    )}
+
+                  {/* Модератор/админ — пометить на удаление */}
+                  {!isOwner && canMarkDelete && (
+                    <Button onClick={handleMarkDelete} className="action-button delete">
+                      Пометить на удаление
+                    </Button>
+                  )}
+
+                  {/* Админ — снять пометку */}
+                  {!isOwner && canUnmarkDelete && (
+                    <Button onClick={handleUnmarkDelete} className="action-button edit">
+                      Снять пометку удаления
+                    </Button>
+                  )}
+
+                  {/* Админ — удалить книгу */}
+                  {!isOwner && canDeleteHard && (
                     <Button
                       onClick={handleDelete}
                       variant="secondary"
                       className="action-button delete"
                     >
-                      Удалить
+                      Удалить книгу
                     </Button>
-                  </div>
+                  )}
                 </>
-              ) : book.status === "available" && !isReservedByUser ? (
-                <Button onClick={handleReserve} className="action-button reserve">
-                  Забронировать
-                </Button>
-              ) : isReservedByUser ? (
-                <div className="reservation-status">
-                  <p style={{ marginBottom: "10px", color: "#28a745" }}>
-                    Вы забронировали эту книгу
-                  </p>
-                  <Button
-                    onClick={handleCancelReservation}
-                    className="action-button cancel"
-                    style={{ backgroundColor: "#ffc107", color: "#212529" }}
-                  >
-                    Отменить бронь
-                  </Button>
-                </div>
-              ) : (
-                <p style={{ color: "#dc3545", textAlign: "center" }}>
-                  Книга в данный момент недоступна
-                </p>
               )}
             </div>
           </div>
@@ -479,6 +533,8 @@ const InfoPage: React.FC = () => {
                     ? "Доступна"
                     : book.status === "reserved"
                     ? "Забронирована"
+                    : book.status === "marked_for_deletion"
+                    ? "Помечена на удаление"
                     : "Недоступна"}
                 </span>
 
@@ -495,7 +551,6 @@ const InfoPage: React.FC = () => {
                       gap: "5px",
                     }}
                   >
-                    <span>👥</span>
                     <span>{book.reader_count} читателей</span>
                   </span>
                 )}
@@ -512,18 +567,21 @@ const InfoPage: React.FC = () => {
               <div className="location-content">
                 {book.locations && book.locations.length > 0 ? (
                   <>
+                  
                     <p className="book-location">
-                      {book.locations.map((loc, index) => (
-                        <React.Fragment key={index}>
-                          {typeof loc === "string"
+                      {book.locations.map((loc, index) => {
+                        const text =
+                          typeof loc === "string"
                             ? loc
-                            : loc.name ||
-                              loc.address ||
-                              loc.description ||
-                              "Место хранения"}
-                          {index < book.locations.length - 1 && ", "}
-                        </React.Fragment>
-                      ))}
+                            : [loc.name, loc.address].filter(Boolean).join(" — ") || "Место хранения";
+
+                        return (
+                          <React.Fragment key={index}>
+                            {text}
+                            {index < book.locations.length - 1 && ", "}
+                          </React.Fragment>
+                        );
+                      })}
                     </p>
                     <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
                       <Button onClick={handleMapClick} className="map-button">
@@ -540,14 +598,11 @@ const InfoPage: React.FC = () => {
             <div className="info-container">
               <h3 className="section-title">Владелец книги</h3>
               <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                <p
-                  className="book-owner"
-                  style={{ fontSize: "18px", fontWeight: 500 }}
-                >
+                <p className="book-owner" style={{ fontSize: "18px", fontWeight: 500 }}>
                   {ownerInfo.name}
                 </p>
 
-                {isOwner && (
+                {ownerInfo.isCurrentUser && (
                   <span
                     style={{
                       fontSize: "14px",
@@ -561,7 +616,7 @@ const InfoPage: React.FC = () => {
                 )}
               </div>
 
-              {ownerInfo.email && !isOwner && (
+              {ownerInfo.email && !ownerInfo.isCurrentUser && (
                 <p style={{ color: "#666", fontSize: "14px", marginTop: "5px" }}>
                   Email: {ownerInfo.email}
                 </p>

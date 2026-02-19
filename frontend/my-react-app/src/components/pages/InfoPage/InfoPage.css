@@ -274,13 +274,11 @@
 }
 
 .status-badge.available {
-  background-color: #28a745;
-  color: white;
+  color: #28a745;
 }
 
 .status-badge.reserved {
-  background-color: #ffc107;
-  color: #212529;
+  color: #ffc107;
 }
 
 .reservation-status {

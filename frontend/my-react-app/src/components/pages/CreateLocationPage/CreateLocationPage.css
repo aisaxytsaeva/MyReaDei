@@ -1,0 +1,121 @@
+html, body, #root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+}
+.cl-page {
+  min-height: 100vh;
+  width: 100%;
+  background: #f6dfd7;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden; 
+}
+
+.cl-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+}
+
+
+.cl-content {
+  flex: 1;
+  width: 100%;
+  padding: 40px 20px;
+  display: grid;
+  place-items: start center; 
+}
+
+.cl-wrapper {
+  width: 100%;
+  max-width: 1200px;
+}
+
+.cl-pageHeader {
+  margin-bottom: 18px;
+}
+
+.cl-title {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 700;
+  color: #222;
+}
+
+.cl-subtitle {
+  margin-top: 6px;
+  color: #666;
+}
+
+.cl-form {
+  width: 100%;
+  max-width: 680px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+
+.cl-section {
+  margin-bottom: 16px;
+}
+
+.cl-sectionTitle {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #222;
+}
+
+.cl-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 14px;
+  font-size: 15px;
+  background: #fff;
+  color: #222;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.cl-input:focus {
+  border-color: #711720;
+  box-shadow: 0 0 0 3px rgba(113, 23, 32, 0.12);
+}
+
+/* Ошибка */
+.cl-error {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: #ffe6e6;
+  border: 1px solid #ffb3b3;
+  color: #8a1f1f;
+  border-radius: 12px;
+}
+
+/* Кнопки */
+.cl-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+@media (max-width: 768px) {
+  .cl-content {
+    padding: 24px 14px;
+  }
+
+  .cl-title {
+    font-size: 28px;
+  }
+
+  .cl-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

@@ -1,5 +1,5 @@
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
@@ -10,8 +10,10 @@ from models.books import Book
 from models.locations import Location
 from models.reservations import Reservation
 from models.users import User
-from schemas.books import BookCreate, BookResponse, BookUpdate, Catalog
+from schemas.books import BookCreate, BookForDelete, BookResponse, BookUpdate, Catalog
 
+
+BOOK_STATUS_MARKED_FOR_DELETION = "marked_for_deletion"
 
 def get_readers_count(db: Session, book_id: int) -> int:
     return db.query(func.count(UserReadBooks.id)).filter(
@@ -95,14 +97,16 @@ def get_book_with_details(db: Session, book_id: int) -> Optional[BookResponse]:
     if not book:
         return None
     
-
     readers_count = get_readers_count(db, book.id)
     
-    locations = db.query(Location.name).join(
+    locations = db.query(Location.id, Location.name, Location.address).join(
         BookLocation, BookLocation.location_id == Location.id
     ).filter(BookLocation.book_id == book.id).all()
     
-    location_names = [loc[0] for loc in locations]
+    location_items = [
+        {"id": loc.id, "name": loc.name or "", "address": loc.address or ""}
+        for loc in locations
+    ]
 
     return {
         "id": book.id,
@@ -111,7 +115,7 @@ def get_book_with_details(db: Session, book_id: int) -> Optional[BookResponse]:
         "description": book.description or "",
         "cover_image_uri": book.cover_image_uri or "",
         "reader_count": readers_count or 0,  
-        "locations": location_names,
+        "locations": location_items,
         "owner_id": book.owner_id,
         "status": book.status or "available"
     }
@@ -248,3 +252,47 @@ def update_book_locations(
     except Exception as e:
         db.rollback()
         raise ValueError(f"Ошибка при обновлении локаций книги: {str(e)}")
+    
+
+
+def update_status_by_admin(
+        db: Session, 
+        book_id: int, 
+        new_status: str
+    ) ->Book:
+        book = db.query(Book).filter(Book.id == book_id).first()
+        if not book:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="BOOK NOT FOUND "
+            )
+
+        allowed = {
+        "available",
+        BOOK_STATUS_MARKED_FOR_DELETION,
+        }
+        
+        if new_status not in allowed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid status: {new_status}",
+            )
+        
+        book.status = new_status
+        db.add(book)
+        db.commit()
+        db.refresh(book)
+        return book
+
+def get_books_marked_for_deletion(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+) -> List[Book]:
+    return (
+        db.query(Book)
+        .filter(Book.status == BOOK_STATUS_MARKED_FOR_DELETION)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )

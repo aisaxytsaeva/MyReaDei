@@ -73,7 +73,6 @@ const HomePage: React.FC = () => {
     if (!query.trim()) return;
 
     try {
-      // В api.ts searchBooks(query, skip, limit) использует параметр q
       const resp = await bookApi.searchBooks(query, 0, 100);
       const results = resp.data as Book[];
 
@@ -92,14 +91,6 @@ const HomePage: React.FC = () => {
         },
       });
     }
-  };
-
-  const handleBookAction = (bookId: Id): void => {
-    if (!isAuthenticated) {
-      navigate("/auth");
-      return;
-    }
-    navigate(`/book/${bookId}`);
   };
 
   const handleBookClick = (bookId: Id): void => {

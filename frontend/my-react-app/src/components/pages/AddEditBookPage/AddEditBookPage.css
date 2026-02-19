@@ -1,25 +1,4 @@
-/* Полноэкранная страница */
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden;
-}
-
-.add-edit-book-page {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-}
-
-
+.add-edit-book-page { position: fixed; inset:0; width:100vw; height:100vh; }
 .fixed-header {
   position: fixed;
   top: 0;
@@ -32,18 +11,16 @@ html, body {
   width: 100%;
 }
 
-/* Основной контент занимает всё оставшееся пространство */
 .main-content {
   flex: 1;
   width: 100%;
-  margin-top: 80px; /* Отступ для фиксированного Header */
+  margin-top: 80px;
   height: calc(100vh - 80px);
   overflow-y: auto;
   display: flex;
   justify-content: center;
 }
 
-/* Обёртка для центрирования контента */
 .content-wrapper {
   width: 100%;
   max-width: 1200px;
@@ -53,7 +30,6 @@ html, body {
   min-height: 100%;
 }
 
-/* Шапка страницы */
 .page-header {
   margin-bottom: 40px;
   width: 100%;
@@ -61,23 +37,6 @@ html, body {
   flex-direction: column;
   gap: 10px;
   flex-shrink: 0;
-}
-
-.back-button {
-  background: none;
-  border: none;
-  color: #711720;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 10px 15px;
-  border-radius: 8px;
-  transition: background-color 0.2s;
-  align-self: flex-start;
-  margin-bottom: 15px;
-}
-
-.back-button:hover {
-  background-color: rgba(113, 23, 32, 0.1);
 }
 
 .page-title {
@@ -93,7 +52,6 @@ html, body {
   margin-top: 5px;
 }
 
-/* Форма */
 .book-form {
   flex: 1;
   display: flex;
@@ -107,26 +65,21 @@ html, body {
   margin-bottom: 40px;
 }
 
-/* Левая колонка - изображение */
 .form-left-column {
   display: flex;
   flex-direction: column;
 }
 
-/* Правая колонка - информация */
 .form-right-column {
   display: flex;
   flex-direction: column;
   gap: 25px;
 }
 
-/* Общие стили для секций */
 .form-section {
   border-radius: 20px;
   padding: 25px;
-  transition: transform 0.3s ease;
 }
-
 
 .section-title {
   font-size: 20px;
@@ -135,7 +88,6 @@ html, body {
   font-weight: 600;
 }
 
-/* Загрузка изображения */
 .image-upload-container {
   display: flex;
   flex-direction: column;
@@ -188,20 +140,17 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
-  color: #999;
-}
-
-.placeholder-icon {
-  font-size: 64px;
+  justify-content: center;
+  height: 100%;
 }
 
 .placeholder-text {
+  color: #666;
+  text-align: center;
   font-size: 16px;
   font-weight: 500;
 }
 
-/* Кнопка выбора файла */
 .file-upload-wrapper {
   display: flex;
   flex-direction: column;
@@ -239,8 +188,7 @@ html, body {
   font-style: italic;
 }
 
-/* Поля формы */
-.form-input, 
+.form-input,
 .form-textarea,
 .location-select {
   width: 100%;
@@ -263,17 +211,11 @@ html, body {
   box-shadow: 0 0 0 3px rgba(113, 23, 32, 0.1);
 }
 
-.form-input::placeholder,
-.form-textarea::placeholder {
-  color: #aaa;
-}
-
 .form-textarea {
   resize: vertical;
   min-height: 120px;
 }
 
-/* Выбор места */
 .location-container {
   display: flex;
   flex-direction: column;
@@ -286,20 +228,8 @@ html, body {
 }
 
 .location-select {
-  appearance: none;
-  padding-right: 50px;
-  cursor: pointer;
-  color: #333;
-}
-
-.select-arrow {
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #711720;
-  pointer-events: none;
-  font-size: 14px;
+  height: auto;
+  min-height: 120px;
 }
 
 .location-info {
@@ -310,21 +240,12 @@ html, body {
 }
 
 .location-text {
-  margin: 0 0 10px 0;
+  margin: 0;
   font-size: 14px;
   color: #555;
   line-height: 1.5;
 }
 
-.location-text:last-child {
-  margin-bottom: 0;
-}
-
-.location-text strong {
-  color: #711720;
-}
-
-/* Кнопки действий */
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -350,209 +271,18 @@ html, body {
   border: 2px solid #ddd;
 }
 
-.cancel-button:hover {
-  background-color: #e0e0e0;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
 .submit-button {
   background-color: #711720;
   color: white;
   border: none;
 }
 
-.submit-button:hover {
-  background-color: #5a131c;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(113, 23, 32, 0.3);
-}
-
-/* Стилизация скроллбара */
-.main-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.main-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-.main-content::-webkit-scrollbar-thumb {
-  background: #711720;
-  border-radius: 4px;
-}
-
-.main-content::-webkit-scrollbar-thumb:hover {
-  background: #5a131c;
-}
-
-/* Адаптивность */
-@media (max-width: 992px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-    gap: 30px;
-  }
-  
-  .form-section {
-    padding: 20px;
-  }
-  
-  .form-actions {
-    flex-direction: column;
-  }
-  
-  .cancel-button,
-  .submit-button {
-    min-width: 100%;
-    height: 55px;
-  }
-}
-
-@media (max-width: 768px) {
-  /* На мобильных меняем высоту Header и отступы */
-  .fixed-header {
-    height: 70px;
-  }
-  
-  .main-content {
-    margin-top: 70px;
-    height: calc(100vh - 70px);
-  }
-
-  .content-wrapper {
-    padding: 20px 15px;
-  }
-
-  .page-header {
-    margin-bottom: 30px;
-  }
-
-  .page-title {
-    font-size: 32px;
-  }
-
-  .page-subtitle {
-    font-size: 16px;
-  }
-
-  .section-title {
-    font-size: 18px;
-  }
-
-  .form-input, 
-  .form-textarea,
-  .location-select {
-    padding: 14px 16px;
-    font-size: 15px;
-  }
-
-  .image-preview {
-    height: 250px;
-  }
-
-  .form-actions {
-    gap: 15px;
-  }
-
-  .cancel-button,
-  .submit-button {
-    height: 50px;
-    font-size: 16px;
-  }
-}
-
-@media (max-width: 576px) {
-  .fixed-header {
-    height: 65px;
-  }
-  
-  .main-content {
-    margin-top: 65px;
-    height: calc(100vh - 65px);
-  }
-
-  .page-title {
-    font-size: 28px;
-  }
-
-  .page-subtitle {
-    font-size: 15px;
-  }
-
-  .form-section {
-    padding: 18px;
-    border-radius: 15px;
-  }
-
-  .section-title {
-    font-size: 17px;
-    margin-bottom: 15px;
-  }
-
-  .image-preview {
-    height: 200px;
-  }
-
-  .file-upload-button {
-    padding: 12px 20px;
-    font-size: 15px;
-  }
-}
-
-@media (max-width: 480px) {
-  .fixed-header {
-    height: 60px;
-  }
-  
-  .main-content {
-    margin-top: 60px;
-    height: calc(100vh - 60px);
-  }
-
-  .content-wrapper {
-    padding: 15px 12px;
-  }
-
-  .page-title {
-    font-size: 24px;
-  }
-
-  .page-subtitle {
-    font-size: 14px;
-  }
-
-  .form-grid {
-    gap: 20px;
-  }
-
-  .form-section {
-    padding: 16px;
-    border-radius: 12px;
-  }
-
-  .section-title {
-    font-size: 16px;
-  }
-
-  .image-preview {
-    height: 180px;
-  }
-
-  .cancel-button,
-  .submit-button {
-    height: 48px;
-    font-size: 15px;
-  }
-}
-/* Добавьте эти стили в существующий CSS */
-
 .selected-locations {
   margin-top: 15px;
   padding: 10px;
   background-color: #f8f9fa;
-  border-radius: 5px;
-  border-left: 4px solid #007bff;
+  border-radius: 10px;
+  border-left: 4px solid #711720;
 }
 
 .selected-locations ul {
@@ -565,16 +295,11 @@ html, body {
   color: #555;
 }
 
-.location-select {
-  height: auto;
-  min-height: 120px;
-}
-
 .no-locations {
   padding: 20px;
   text-align: center;
   background-color: #f8f9fa;
-  border-radius: 5px;
+  border-radius: 10px;
   border: 1px dashed #dee2e6;
 }
 
@@ -583,25 +308,99 @@ html, body {
   padding: 15px;
   background-color: #f8d7da;
   color: #721c24;
-  border-radius: 5px;
+  border-radius: 10px;
   border: 1px solid #f5c6cb;
 }
 
-.image-placeholder {
+/* Блок "создать локацию" */
+.create-location-hint {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 15px;
+  background: rgba(113, 23, 32, 0.05);
+  border-left: 4px solid #711720;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  height: 100%;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.placeholder-icon {
-  font-size: 48px;
-  margin-bottom: 10px;
-  opacity: 0.5;
+.create-location-hint-text {
+  color: #555;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
-.placeholder-text {
-  color: #666;
-  text-align: center;
+.create-location-btn {
+  background-color: #711720;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.create-location-btn:hover {
+  background-color: #5a131c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(113, 23, 32, 0.3);
+}
+
+.create-location-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Адаптивность */
+@media (max-width: 992px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .cancel-button,
+  .submit-button {
+    min-width: 100%;
+    height: 55px;
+  }
+}
+
+@media (max-width: 768px) {
+  .fixed-header {
+    height: 70px;
+  }
+
+  .main-content {
+    margin-top: 70px;
+    height: calc(100vh - 70px);
+  }
+
+  .page-title {
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .fixed-header {
+    height: 60px;
+  }
+
+  .main-content {
+    margin-top: 60px;
+    height: calc(100vh - 60px);
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
 }

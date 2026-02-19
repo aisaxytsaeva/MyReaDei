@@ -1,0 +1,72 @@
+:root {
+  --header-h: 77px;
+}
+
+.adminPage {
+  min-height: 100vh;
+  background: #f8ddd3;
+}
+
+.adminHeader {
+  position:sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-h);
+  z-index: 3000;
+}
+
+/* контент всегда начинается ниже хедера */
+.adminBody {
+  padding-top: var(--header-h);
+}
+
+.adminContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+  box-sizing: border-box;
+}
+
+.adminTitle {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 700;
+  color: #222;
+}
+
+.adminTabs {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0 30px;
+  flex-wrap: wrap;
+}
+
+.adminTab {
+  padding: 12px 22px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  background: #fff;
+  color: #444;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+  transition: transform 0.2s;
+}
+
+.adminTab:hover {
+  transform: translateY(-2px);
+}
+
+.adminTab.active {
+  background: #711720;
+  color: #fff;
+}
+
+.adminSection {
+  background: #fff;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}

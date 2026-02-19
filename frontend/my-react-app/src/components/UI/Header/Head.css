@@ -1,35 +1,117 @@
-.header {
+.app-header {
   width: 100%;
   height: 77px;
+  background-color: #711720;
   display: flex;
   align-items: center;
-  padding-left: 192px;
-  background-color: #711720; /* Прозрачный фон */
-  position: relative;
-  z-index: 1;
+  
+  top: 0;
+  z-index: 1000;
 }
 
-.logo {
-  color: #711720; 
-  font-size: 40px;
-  font-weight: normal;
+
+.app-header__inner {
+  width: 100%;
+  max-width: 1200px;          
+  margin: 0 auto;             
+  padding: 0 20px;            
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.app-header__logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.app-header__logo:hover {
+  opacity: 0.85;
+}
+
+.app-header__logoImg {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.app-header__title {
+  color: #f8ddd3;
+  font-size: 36px;
+  font-weight: 400;
   margin: 0;
 }
 
-.authSection {
-  margin-left: auto;
-  padding-right: 192px;
+.app-header__right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-.profileIcon, .loginButton {
-  background: none;
+.app-header__iconBtn {
+  background: transparent;
   border: none;
-  color: #711720;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 999px;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-header__iconBtn:hover {
+  background-color: rgba(248, 221, 211, 0.12);
+}
+
+.app-header__profileImg {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+
+.app-header__loginBtn {
+  background: transparent;
+  border: none;
+  color: #f8ddd3;
   font-size: 16px;
   cursor: pointer;
-  padding: 0;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
 }
 
-.profileIcon:hover, .loginButton:hover {
-  opacity: 0.8;
+.app-header__loginBtn:hover {
+  background-color: rgba(248, 221, 211, 0.12);
+}
+
+
+@media (max-width: 520px) {
+  .app-header__title {
+    font-size: 28px;
+  }
+  .app-header__profileImg {
+    width: 44px;
+    height: 44px;
+  }
+}
+.app-header__adminBtn {
+  background: rgba(255,255,255,0.12);
+  border: none;
+  color: #f8ddd3;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.app-header__adminBtn:hover {
+  background: rgba(255,255,255,0.22);
+  transform: translateY(-1px);
 }

@@ -1,182 +1,230 @@
-import React, {
-  createContext,
-  useState,
-  useContext,
-  useEffect,
-  type ReactNode,
-} from "react";
-import { bookApi, type User, type RegisterResponse } from "../lib/api";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { bookApi, type LoginResponse } from "../lib/api";
 
-export type RegisterResult =
-  | { success: true }
-  | { success: false; error: string };
+/** Роли как на бэке */
+export type UserRole = "guest" | "user" | "moderator" | "admin";
 
-export type AuthContextType = {
-  user: User | null;
+export type UserProfile = {
+  id: number | string;
+  username?: string;
+  email?: string;
+
+  // поля из /users/me
+  book_added?: number;
+  book_borrowed?: number;
+
+  // роль может прийти из /users/me или из токена
+  role?: UserRole;
+
+  [k: string]: unknown;
+};
+
+type AuthContextValue = {
+  user: UserProfile | null;
   token: string | null;
-  loading: boolean;
-  isDemoMode: boolean;
+  role: UserRole;
+
   isAuthenticated: boolean;
+  isAdmin: boolean;
+  isModerator: boolean;
+  isModeratorOrAdmin: boolean;
 
-  /** token=null => demo mode */
-  login: (userData: User, token?: string | null) => void;
+  /** обычный логин */
+  login: (username: string, password: string) => Promise<void>;
+
+  /** ручная установка сессии (нужно для твоего LoginPage.tsx) */
+  setSession: (user: UserProfile, token: string) => Promise<void>;
+
+  register: (payload: Record<string, unknown>) => Promise<void>;
   logout: () => Promise<void>;
+  refreshMe: (overrideToken?: string) => Promise<void>;
 
-  register: (userData: Record<string, unknown>) => Promise<RegisterResult>;
-
-  /** можно дернуть вручную, если нужно */
-  refreshAuth: () => Promise<void>;
+  /** Хелпер — удобно скрывать/показывать кнопки */
+  hasAnyRole: (...roles: UserRole[]) => boolean;
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export const useAuth = (): AuthContextType => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
-  return ctx;
-};
+const TOKEN_KEY = "token";
 
-type AuthProviderProps = {
-  children: ReactNode;
-};
+/**
+ * Достаём роль из JWT без валидации подписи — только для UI.
+ * Истина всё равно на бэке (проверка токена).
+ */
+function getRoleFromJwt(token: string | null): UserRole {
+  if (!token) return "guest";
+  try {
+    const payloadPart = token.split(".")[1];
+    if (!payloadPart) return "guest";
 
-export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
+    // base64url -> base64
+    const b64 = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
 
+    const json = atob(padded);
+    const payload = JSON.parse(json) as { role?: string };
+
+    const r = (payload.role ?? "guest").toLowerCase();
+    if (r === "admin" || r === "moderator" || r === "user" || r === "guest") return r;
+    return "guest";
+  } catch {
+    return "guest";
+  }
+}
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [role, setRole] = useState<UserRole>(() => getRoleFromJwt(localStorage.getItem(TOKEN_KEY)));
+
+  const isAuthenticated = !!token;
+  const isAdmin = role === "admin";
+  const isModerator = role === "moderator";
+  const isModeratorOrAdmin = role === "moderator" || role === "admin";
+
+  const hasAnyRole = (...roles: UserRole[]) => roles.includes(role);
+
+  /** Синхронизация токена в localStorage */
   useEffect(() => {
-    void checkAuth();
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+      setRole(getRoleFromJwt(token));
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+      setRole("guest");
+      setUser(null);
+    }
+  }, [token]);
+
+  /** Подтянуть профиль после перезагрузки страницы */
+  useEffect(() => {
+    if (!token) return;
+    void refreshMe(token);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const checkAuth = async (): Promise<void> => {
+  const refreshMe = async (overrideToken?: string): Promise<void> => {
+    const t = overrideToken ?? token;
+
+    if (!t) {
+      setUser(null);
+      setRole("guest");
+      return;
+    }
+
     try {
-      setLoading(true);
+      const resp = await bookApi.getProfile();
+      const profile = resp.data as UserProfile;
 
-      const storedToken = localStorage.getItem("token");
-      const demoMode = localStorage.getItem("demo_mode");
-      const storedUser = localStorage.getItem("user");
+      // роль берём приоритетно из токена
+      const roleFromToken = getRoleFromJwt(t);
 
-      // demo mode
-      if (demoMode === "true" && storedUser) {
-        setIsDemoMode(true);
-        setToken(null);
-        setUser(JSON.parse(storedUser) as User);
-        return;
-      }
+      // если вдруг на бэке тоже есть role — можно подхватить как запасной вариант
+      const roleFromProfile = (profile.role ?? "").toString().toLowerCase() as UserRole;
 
-      // normal mode
-      if (storedToken) {
-        setToken(storedToken);
-        setIsDemoMode(false);
+      const finalRole: UserRole =
+        roleFromToken !== "guest"
+          ? roleFromToken
+          : roleFromProfile === "admin" ||
+            roleFromProfile === "moderator" ||
+            roleFromProfile === "user" ||
+            roleFromProfile === "guest"
+          ? roleFromProfile
+          : "user";
 
-        try {
-          const response = await bookApi.getProfile();
-          setUser(response.data); // User типизирован в api.ts
-          localStorage.setItem("user", JSON.stringify(response.data));
-        } catch (profileError) {
-          console.error("Ошибка получения профиля:", profileError);
-          // fallback: если есть сохраненный user
-          if (storedUser) setUser(JSON.parse(storedUser) as User);
-        }
-      } else {
+      setRole(finalRole);
+      setUser({ ...profile, role: finalRole });
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) {
         setToken(null);
         setUser(null);
-        setIsDemoMode(false);
+        setRole("guest");
+      } else {
+        console.warn("Не удалось обновить профиль:", err?.response?.data ?? err?.message ?? err);
       }
-    } catch (error) {
-      console.error("Ошибка проверки аутентификации:", error);
-      localStorage.removeItem("token");
-      localStorage.removeItem("demo_mode");
-      localStorage.removeItem("user");
-      setToken(null);
-      setUser(null);
-      setIsDemoMode(false);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const login = (userData: User, newToken: string | null = null): void => {
-    setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
+  const login = async (username: string, password: string): Promise<void> => {
+    const resp = await bookApi.login(username, password);
+    const data = resp.data as LoginResponse;
 
-    if (newToken) {
-      setToken(newToken);
-      localStorage.setItem("token", newToken);
-      localStorage.removeItem("demo_mode");
-      setIsDemoMode(false);
-    } else {
-      // demo
-      setToken(null);
-      localStorage.removeItem("token");
-      localStorage.setItem("demo_mode", "true");
-      setIsDemoMode(true);
+    const accessToken = data?.access_token;
+    if (!accessToken) throw new Error("Сервер не вернул access_token");
+
+    setToken(accessToken);
+    await refreshMe(accessToken);
+  };
+
+  /**
+   * ВАЖНО: это то, чего тебе не хватало в LoginPage.tsx
+   * Теперь можно делать: auth.setSession(userData, accessToken)
+   */
+  const setSession = async (u: UserProfile, t: string): Promise<void> => {
+    setToken(t);
+
+    const r = getRoleFromJwt(t);
+    setRole(r === "guest" ? (u.role ?? "user") : r);
+    setUser({ ...u, role: r === "guest" ? (u.role ?? "user") : r });
+
+    // если хочешь, чтобы данные всегда синхронизировались с бэком:
+    await refreshMe(t);
+  };
+
+  const register = async (payload: Record<string, unknown>): Promise<void> => {
+    const resp = await bookApi.register(payload);
+    const data = resp.data as any;
+
+    const accessToken: string | undefined = data?.access_token;
+    if (accessToken) {
+      setToken(accessToken);
+      await refreshMe(accessToken);
+      return;
     }
+
+    await refreshMe();
   };
 
   const logout = async (): Promise<void> => {
     try {
-      if (!isDemoMode) {
-        await bookApi.logout();
-      }
-    } catch (error) {
-      console.error("Ошибка при выходе:", error);
+      await bookApi.logout();
+    } catch {
+      // игнор
     } finally {
-      localStorage.removeItem("token");
-      localStorage.removeItem("demo_mode");
-      localStorage.removeItem("user");
       setToken(null);
       setUser(null);
-      setIsDemoMode(false);
+      setRole("guest");
     }
   };
 
-  const register = async (
-    userData: Record<string, unknown>
-  ): Promise<RegisterResult> => {
-    try {
-      const response = await bookApi.register(userData);
-      const data: RegisterResponse = response.data;
+  const value: AuthContextValue = useMemo(
+    () => ({
+      user,
+      token,
+      role,
 
-      setToken(data.access_token);
-      localStorage.setItem("token", data.access_token);
+      isAuthenticated,
+      isAdmin,
+      isModerator,
+      isModeratorOrAdmin,
 
-      setUser(data.user);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      login,
+      setSession,
+      register,
+      logout,
+      refreshMe,
 
-      localStorage.removeItem("demo_mode");
-      setIsDemoMode(false);
-
-      return { success: true };
-    } catch (error: unknown) {
-      const message =
-        typeof error === "object" &&
-        error !== null &&
-        "response" in error &&
-        typeof (error as any).response?.data?.detail === "string"
-          ? (error as any).response.data.detail
-          : "Ошибка регистрации";
-
-      return { success: false, error: message };
-    }
-  };
-
-  const value: AuthContextType = {
-    user,
-    token,
-    loading,
-    isDemoMode,
-    isAuthenticated: !!user && !!token && !isDemoMode,
-
-    login,
-    logout,
-    register,
-
-    refreshAuth: checkAuth,
-  };
+      hasAnyRole,
+    }),
+    [user, token, role, isAuthenticated, isAdmin, isModerator, isModeratorOrAdmin]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
+}

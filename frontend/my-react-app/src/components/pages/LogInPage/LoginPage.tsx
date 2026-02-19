@@ -5,11 +5,12 @@ import Button from "../../UI/Button/Button";
 import Header from "../../UI/Header/Header";
 import "./LogInPage.css";
 
-import { bookApi, type User, type LoginResponse } from "../../../lib/api";
+import { bookApi, type LoginResponse } from "../../../lib/api";
 
 type JwtPayload = {
   user_id?: number | string;
   sub?: number | string;
+  role?: string;
   [key: string]: unknown;
 };
 
@@ -17,7 +18,12 @@ const decodeJwtPayload = (token: string): JwtPayload | null => {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
-    const payloadJson = atob(parts[1]);
+
+    
+    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+
+    const payloadJson = atob(padded);
     return JSON.parse(payloadJson) as JwtPayload;
   } catch {
     return null;
@@ -30,7 +36,7 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
-  const { login: authLogin } = useAuth();
+  const { setSession } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
@@ -45,7 +51,6 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      // 1) логин
       const resp = await bookApi.login(login, password);
       const data: LoginResponse = resp.data;
 
@@ -55,26 +60,26 @@ const LoginPage: React.FC = () => {
         return;
       }
 
-      // Сохраняем токен (интерцептор axios будет брать его отсюда)
+      // сохраняем токен (если у тебя интерцептор axios читает отсюда)
       localStorage.setItem("token", accessToken);
 
       // 2) профиль
-      let userData: User | null = null;
+      let userData: any = null;
 
       try {
         const profileResp = await bookApi.getProfile();
-        const profile = profileResp.data;
+        const profile = profileResp.data as any;
 
         userData = {
           ...profile,
           id: profile.id,
-          username: (profile as any).username ?? login,
-          email: (profile as any).email ?? `${login}@example.com`,
-          name: (profile as any).username ?? login,
-          
+          username: profile.username ?? login,
+          email: profile.email ?? `${login}@example.com`,
+          // role может прийти с бэка, но даже если нет — контекст возьмёт из JWT
+          role: profile.role,
         };
       } catch {
-        // fallback: пробуем достать id из JWT
+        // fallback: пробуем достать id/role из JWT
         const payload = decodeJwtPayload(accessToken);
         const idFromToken = payload?.user_id ?? payload?.sub ?? 1;
 
@@ -82,14 +87,13 @@ const LoginPage: React.FC = () => {
           id: idFromToken,
           username: login,
           email: `${login}@example.com`,
-          name: login,
+          role: (payload?.role as any) ?? "user",
         };
       }
 
-      // 3) кладём user + token в контекст
-      authLogin(userData, accessToken);
+      // ✅ главное изменение: теперь используем setSession
+      await setSession(userData, accessToken);
 
-      // 4) переход
       navigate("/home");
     } catch (err: any) {
       const status: number | undefined = err?.response?.status;
@@ -132,11 +136,9 @@ const LoginPage: React.FC = () => {
             <input
               type="text"
               value={login}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setLogin(e.target.value)
-              }
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLogin(e.target.value)}
               className="form-input"
-              placeholder="test_user"
+              placeholder="username"
               disabled={loading}
               required
             />
@@ -147,9 +149,7 @@ const LoginPage: React.FC = () => {
             <input
               type="password"
               value={password}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setPassword(e.target.value)
-              }
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               className="form-input"
               placeholder="password"
               disabled={loading}

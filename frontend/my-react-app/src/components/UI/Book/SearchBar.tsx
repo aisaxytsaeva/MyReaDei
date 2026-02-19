@@ -29,7 +29,7 @@ const SearchBar: React.FC<Props> = ({
             type="text"
             value={searchQuery}
             onChange={handleChange}
-            placeholder="Введите название или автора"
+            placeholder="Введите свой запрос"
             className="search-input"
           />
 
