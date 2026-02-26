@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7 
+    COOKIE_SECURE: bool = True      
+    COOKIE_SAMESITE: str = "lax"    
+    REFRESH_COOKIE_NAME: str = "refresh_token"
+    REDIS_URL: str = "redis://localhost:6379/0"
     
     class Config:
         env_file = ".env"

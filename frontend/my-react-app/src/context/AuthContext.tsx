@@ -29,17 +29,15 @@ type AuthContextValue = {
   isModerator: boolean;
   isModeratorOrAdmin: boolean;
 
-  /** обычный логин */
+
   login: (username: string, password: string) => Promise<void>;
 
-  /** ручная установка сессии (нужно для твоего LoginPage.tsx) */
   setSession: (user: UserProfile, token: string) => Promise<void>;
 
   register: (payload: Record<string, unknown>) => Promise<void>;
   logout: () => Promise<void>;
   refreshMe: (overrideToken?: string) => Promise<void>;
 
-  /** Хелпер — удобно скрывать/показывать кнопки */
   hasAnyRole: (...roles: UserRole[]) => boolean;
 };
 
@@ -47,17 +45,13 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const TOKEN_KEY = "token";
 
-/**
- * Достаём роль из JWT без валидации подписи — только для UI.
- * Истина всё равно на бэке (проверка токена).
- */
+
 function getRoleFromJwt(token: string | null): UserRole {
   if (!token) return "guest";
   try {
     const payloadPart = token.split(".")[1];
     if (!payloadPart) return "guest";
 
-    // base64url -> base64
     const b64 = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
     const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
 

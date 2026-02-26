@@ -9,6 +9,8 @@ from core.db import get_db
 from jose import JWTError, jwt
 from models.users import User
 from passlib.context import CryptContext
+from uuid import uuid4
+
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -31,12 +33,18 @@ def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
-def create_refresh_token(data: dict) -> str:
+def create_refresh_token(data: dict):
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode.update({"exp": expire, "type": "refresh", "role": data.get("role", "user")}, )
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    return encoded_jwt
+    jti = uuid4().hex
+    to_encode.update({
+        "exp": expire,
+        "type": "refresh",
+        "role": data.get("role", "user"),
+        "jti": jti,
+    })
+    token = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return token, jti, expire
 
 def verify_token(token: str) -> dict:
     try:
