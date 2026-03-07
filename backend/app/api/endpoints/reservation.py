@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime, timedelta
-from core.db import get_db
-from core.security import get_current_user
-from crud import reservation as reservations_crud
-from models.users import User
-from schemas.reservation import ReservationCreate, ReservationResponse
+from app.core.db import get_db
+from app.core.security import get_current_user
+from app.crud import reservation as reservations_crud
+from app.models.users import User
+from app.schemas.reservation import ReservationCreate, ReservationResponse
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 

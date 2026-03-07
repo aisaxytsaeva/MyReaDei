@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import List
-from core.permissions import UserRole
+from app.core.permissions import UserRole
 
 class RoleUpdateRequest(BaseModel):
     role: UserRole

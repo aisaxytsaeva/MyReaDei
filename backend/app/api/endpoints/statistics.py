@@ -2,9 +2,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from requests import Session
 
-from core.db import get_db
-from schemas.statistics import PlatformStats, PopularBook
-from crud import statistics as stats_crud
+from app.core.db import get_db
+from app.schemas.statistics import PlatformStats, PopularBook
+from app.crud import statistics as stats_crud
 
 router = APIRouter(prefix="/statistics", tags=["statistics"])
 

@@ -4,15 +4,15 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from redis.asyncio import Redis
 
-from core.config import settings
-from core.db import get_db
-from core.redis import get_redis
-from core.cookies import set_refresh_cookie, clear_refresh_cookie
-from core.security import create_access_token, create_refresh_token, verify_token
-from services.refresh_store import RefreshStore
-from models.users import User
-from crud.user import authenticate_user, create_user
-from schemas.auth import UserRegister, UserResponse
+from app.core.config import settings
+from app.core.db import get_db
+from app.core.redis import get_redis
+from app.core.cookies import set_refresh_cookie, clear_refresh_cookie
+from app.core.security import create_access_token, create_refresh_token, verify_token
+from app.services.refresh_store import RefreshStore
+from app.models.users import User
+from app.crud.user import authenticate_user, create_user
+from app.schemas.auth import UserRegister, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

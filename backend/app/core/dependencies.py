@@ -1,8 +1,8 @@
 from fastapi import Depends, HTTPException, status
 
-from core.security import get_current_user
+from .security import get_current_user
 from .permissions import UserRole, LocationPermission, BookPermission
-from models.users import User
+from app.models.users import User
 
 
 def require_role(required_roles: list[UserRole]):

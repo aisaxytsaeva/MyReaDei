@@ -2,10 +2,10 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
-from models.book_location import BookLocation
-from schemas.location import LocationCreate, LocationUpdate, LocationResponse, LocationWithStats
-from models.books import Book
-from models.locations import Location
+from app.models.book_location import BookLocation
+from app.schemas.location import LocationCreate, LocationUpdate, LocationResponse, LocationWithStats
+from app.models.books import Book
+from app.models.locations import Location
 
 
 def get_location(db: Session, location_id: int) -> Optional[Location]:

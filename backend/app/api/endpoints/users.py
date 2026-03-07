@@ -2,15 +2,15 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from requests import Session
 
-from schemas.auth import UserResponse
-from core.db import get_db
-from core.security import get_current_user
-from crud.user import get_user_by_id, update_user
-from models.users import User
-from schemas.books import Catalog
-from schemas.user import  UserProfile, UserUpdate
-from crud import reservation as reservations_crud
-from crud import book as books_crud
+from app.schemas.auth import UserResponse
+from app.core.db import get_db
+from app.core.security import get_current_user
+from app.crud.user import get_user_by_id, update_user
+from app.models.users import User
+from app.schemas.books import Catalog
+from app.schemas.user import  UserProfile, UserUpdate
+from app.crud import reservation as reservations_crud
+from app.crud import book as books_crud
 
 
 router = APIRouter(prefix="/users", tags=["users"])

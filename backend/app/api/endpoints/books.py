@@ -4,22 +4,23 @@ from typing import List, Optional
 import shutil
 import os
 import uuid
-from core.permissions import UserRole
-from crud import book as books_crud
-from core.db import get_db
-from core.security import get_current_user, require_admin
-from models.books import Book
-from models.users import User
-from schemas.books import BookCreate, BookResponse, BookUpdate, Catalog
+from app.core.permissions import UserRole
+from app.crud import book as books_crud
+from app.core.db import get_db
+from app.core.security import get_current_user, require_admin
+from app.models.books import Book
+from app.models.users import User
+from app.schemas.books import BookCreate, BookResponse, BookUpdate, Catalog
+import logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/books", tags=["books"])
 
-UPLOAD_DIR = "static/covers"
+
+
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/app/static/covers")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-
-import logging
-logger = logging.getLogger(__name__)
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_book(

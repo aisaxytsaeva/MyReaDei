@@ -3,14 +3,14 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
-from models.user_read_books import UserReadBooks
-from models.book_location import BookLocation
-from core.security import get_current_user
-from models.books import Book
-from models.locations import Location
-from models.reservations import Reservation
-from models.users import User
-from schemas.books import BookCreate, BookForDelete, BookResponse, BookUpdate, Catalog
+from app.models.user_read_books import UserReadBooks
+from app.models.book_location import BookLocation
+from app.core.security import get_current_user
+from app.models.books import Book
+from app.models.locations import Location
+from app.models.reservations import Reservation
+from app.models.users import User
+from app.schemas.books import BookCreate, BookForDelete, BookResponse, BookUpdate, Catalog
 
 
 BOOK_STATUS_MARKED_FOR_DELETION = "marked_for_deletion"

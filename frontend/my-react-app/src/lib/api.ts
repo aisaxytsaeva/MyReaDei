@@ -1,4 +1,3 @@
-
 import axios, { type AxiosInstance, type AxiosResponse } from "axios";
 
 export const API_BASE_URL = "http://127.0.0.1:8000";
@@ -18,6 +17,7 @@ export type User = {
   username?: string;
   email?: string;
   name?: string;
+  role?: string; 
   [key: string]: unknown;
 };
 
@@ -78,14 +78,12 @@ export type Reservation = {
 export type Statistics = Record<string, unknown>;
 
 /** Auth */
-export type RegisterResponse = {
-  access_token: string;
-  user: User;
-};
+export type RegisterResponse = User; 
 
 export type LoginResponse = {
   access_token: string;
   token_type?: string;
+
   user?: User;
   [key: string]: unknown;
 };
@@ -96,19 +94,21 @@ export type CreateReservationPayload = {
   selected_location_id: number;
 };
 
-
-
 /** Axios instance */
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true,
+  withCredentials: true, // ВАЖНО для refresh-cookie (HttpOnly)
 });
 
-
+/** Attach access token */
 api.interceptors.request.use((config) => {
+  const url = config.url ?? "";
+  const isAuth = url.includes("/auth/login") || url.includes("/auth/refresh") || url.includes("/auth/register");
+  if (isAuth) return config;
+
   const token = localStorage.getItem("token");
   if (token) {
     config.headers = config.headers ?? {};
@@ -116,29 +116,101 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+/** ===== Auto refresh on 401 ===== */
+let isRefreshing = false;
+let refreshQueue: Array<(token: string | null) => void> = [];
+
+function resolveQueue(token: string | null) {
+  refreshQueue.forEach((cb) => cb(token));
+  refreshQueue = [];
+}
+
+function isAuthEndpoint(url?: string) {
+  if (!url) return false;
+  return (
+    url.includes("/auth/login") ||
+    url.includes("/auth/refresh") ||
+    url.includes("/auth/register") ||
+    url.includes("/auth/logout")
+  );
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const status = error?.response?.status;
+    const originalRequest = error?.config;
+
+    if (!originalRequest || status !== 401) {
+      return Promise.reject(error);
+    }
+
+    // не пытаться refresh для auth endpoints, чтобы не уйти в цикл
+    if (isAuthEndpoint(originalRequest.url)) {
+      return Promise.reject(error);
+    }
+
+    // защита от бесконечных повторов
+    if (originalRequest._retry) {
+      return Promise.reject(error);
+    }
+    originalRequest._retry = true;
+
+    // если refresh уже выполняется — ждём
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        refreshQueue.push((newToken) => {
+          if (!newToken) return reject(error);
+          originalRequest.headers = originalRequest.headers ?? {};
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          resolve(api(originalRequest));
+        });
+      });
+    }
+
+    isRefreshing = true;
+
+    try {
+      // refresh-cookie отправится автоматически (withCredentials: true)
+      const resp = await api.post<LoginResponse>("/auth/refresh");
+      const newToken = resp.data?.access_token;
+
+      if (!newToken) throw new Error("Server did not return access_token on refresh");
+
+      localStorage.setItem("token", newToken);
+      resolveQueue(newToken);
+
+      originalRequest.headers = originalRequest.headers ?? {};
+      originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
+      return api(originalRequest);
+    } catch (refreshErr) {
+      // refresh не удался => очистить локальный access
+      localStorage.removeItem("token");
+      resolveQueue(null);
+      return Promise.reject(refreshErr);
+    } finally {
+      isRefreshing = false;
+    }
+  }
+);
 
 /** API wrapper */
 export const bookApi = {
   // --- Books ---
-  getCatalog: (
-    skip = 0,
-    limit = 100
-  ): Promise<AxiosResponse<Book[]>> =>
+  getCatalog: (skip = 0, limit = 100): Promise<AxiosResponse<Book[]>> =>
     api.get<Book[]>("/books/catalog", { params: { skip, limit } }),
 
-  getBookById: (id: Id): Promise<AxiosResponse<Book>> =>
-    api.get<Book>(`/books/${id}`),
+  getBookById: (id: Id): Promise<AxiosResponse<Book>> => api.get<Book>(`/books/${id}`),
 
   searchBooks: (query: string, skip = 0, limit = 100) =>
-  api.get<Book[]>("/books/search/", { params: { query, skip, limit } }),
-
+    api.get<Book[]>("/books/search/", { params: { query, skip, limit } }),
 
   getPopularBooks: (limit = 10): Promise<AxiosResponse<Book[]>> =>
     api.get<Book[]>("/books/popular/", { params: { limit } }),
 
   getMyBooks: (params?: { skip?: number; limit?: number }) =>
-  api.get<Book[]>("/users/book/my", { params }),
-
+    api.get<Book[]>("/users/book/my", { params }),
 
   createBook: (bookData: {
     title: string;
@@ -162,23 +234,16 @@ export const bookApi = {
     }
 
     return api.post<Book>("/books/", fd, {
-
       headers: { "Content-Type": undefined as any },
     });
   },
 
-  updateBook: (
-    id: Id,
-    bookData: Partial<Book> & Record<string, unknown>
-  ): Promise<AxiosResponse<Book>> => api.put<Book>(`/books/${id}`, bookData),
+  updateBook: (id: Id, bookData: Partial<Book> & Record<string, unknown>): Promise<AxiosResponse<Book>> =>
+    api.put<Book>(`/books/${id}`, bookData),
 
-  deleteBook: (id: Id): Promise<AxiosResponse<void>> =>
-    api.delete<void>(`/books/${id}`),
+  deleteBook: (id: Id): Promise<AxiosResponse<void>> => api.delete<void>(`/books/${id}`),
 
-  uploadCover: (
-    bookId: Id,
-    coverImage: File | Blob
-  ): Promise<AxiosResponse<Book>> => {
+  uploadCover: (bookId: Id, coverImage: File | Blob): Promise<AxiosResponse<Book>> => {
     const formData = new FormData();
     formData.append("cover_image", coverImage);
 
@@ -194,94 +259,76 @@ export const bookApi = {
   reserveBook: (bookId: Id, days: number): Promise<AxiosResponse<Reservation>> =>
     api.post<Reservation>("/reservations", { book_id: bookId, days }),
 
-  createReservation: (
-    payload: CreateReservationPayload
-  ): Promise<AxiosResponse<Reservation>> =>
+  createReservation: (payload: CreateReservationPayload): Promise<AxiosResponse<Reservation>> =>
     api.post<Reservation>("/reservations/", payload),
 
-  getReservations: (): Promise<AxiosResponse<Reservation[]>> =>
-    api.get<Reservation[]>("/reservations/my"),
+  getReservations: (): Promise<AxiosResponse<Reservation[]>> => api.get<Reservation[]>("/reservations/my"),
 
   returnBook: (reservationId: Id): Promise<AxiosResponse<void>> =>
     api.delete<void>(`/reservations/${reservationId}`),
 
   cancelReservation: (reservationId: Id): Promise<AxiosResponse<void>> =>
     api.post<void>(`/reservations/${reservationId}/cancel`),
-  closeReservation: (reservationId: Id) =>
-  api.post<void>(`/reservations/${reservationId}/close`),
 
+  closeReservation: (reservationId: Id) => api.post<void>(`/reservations/${reservationId}/close`),
 
   // --- Auth ---
-  login: (
-    username: string,
-    password: string
-  ): Promise<AxiosResponse<LoginResponse>> => {
+  login: (username: string, password: string): Promise<AxiosResponse<LoginResponse>> => {
     const formData = new URLSearchParams();
     formData.append("username", username);
     formData.append("password", password);
-    formData.append("grant_type", "password");
-    formData.append("scope", "");
-    formData.append("client_id", "");
-    formData.append("client_secret", "");
 
+    // OAuth2PasswordRequestForm не требует grant_type/scope/client_id
     return api.post<LoginResponse>("/auth/login", formData, {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
   },
 
-  register: (
-    userData: Record<string, unknown>
-  ): Promise<AxiosResponse<RegisterResponse>> =>
+  refresh: (): Promise<AxiosResponse<LoginResponse>> =>
+    api.post<LoginResponse>("/auth/refresh"),
+
+  register: (userData: Record<string, unknown>): Promise<AxiosResponse<RegisterResponse>> =>
     api.post<RegisterResponse>("/auth/register", userData),
 
   logout: (): Promise<AxiosResponse<void>> => api.post<void>("/auth/logout"),
 
   getProfile: (): Promise<AxiosResponse<User>> => api.get<User>("/users/me"),
 
-  getUserById: (id: Id): Promise<AxiosResponse<User>> =>
-    api.get<User>(`/users/${id}`),
+  getUserById: (id: Id): Promise<AxiosResponse<User>> => api.get<User>(`/users/${id}`),
 
+  // --- Locations ---
+  getLocations: (): Promise<AxiosResponse<Location[]>> => api.get<Location[]>("/locations"),
 
-  getLocations: (): Promise<AxiosResponse<Location[]>> =>
-    api.get<Location[]>("/locations"),
-
-  createLocation: (
-    payload: CreateLocationPayload
-  ): Promise<AxiosResponse<LocationServer>> =>
-    api.post<LocationServer>('/locations/', payload),
+  createLocation: (payload: CreateLocationPayload): Promise<AxiosResponse<LocationServer>> =>
+    api.post<LocationServer>("/locations/", payload),
 
   getPendingLocations: (skip = 0, limit = 100) =>
-  api.get(`/locations/locations/pending-list`, { params: { skip, limit } }),
+    api.get(`/locations/locations/pending-list`, { params: { skip, limit } }),
 
   approveLocation: (locationId: number) =>
-  api.post(`/locations/locations/${locationId}/approve`),
+    api.post(`/locations/locations/${locationId}/approve`),
 
   rejectLocation: (locationId: number) =>
-  api.delete(`/locations/locations/${locationId}/reject`),
+    api.delete(`/locations/locations/${locationId}/reject`),
 
-  deleteLocation: (locationId: number) =>
-    api.delete<void>(`/locations/${locationId}`),
+  deleteLocation: (locationId: number) => api.delete<void>(`/locations/${locationId}`),
 
   getMyUserBooks: (params?: { limit?: number; skip?: number }) => {
     const cleaned: Record<string, number> = {};
     if (params?.skip !== undefined) cleaned.skip = params.skip;
-    if (params?.limit !== undefined && params.limit > 0) cleaned.limit = params.limit; // <= важно
+    if (params?.limit !== undefined && params.limit > 0) cleaned.limit = params.limit;
     return api.get<Book[]>("/users/book/my", { params: cleaned });
   },
 
-  getStatistics: (): Promise<AxiosResponse<Statistics>> =>
-    api.get<Statistics>("/statistics"),
+  getStatistics: (): Promise<AxiosResponse<Statistics>> => api.get<Statistics>("/statistics"),
 
-
+  // --- Admin ---
   adminGetUsers: () => api.get("/admin/users"),
-  adminSetUserRole: (userId: Id, role: string) =>
-  api.put(`/admin/users/${userId}/role`, { role }),
-
+  adminSetUserRole: (userId: Id, role: string) => api.put(`/admin/users/${userId}/role`, { role }),
   adminGetBooksForDelete: () => api.get("/admin/books/for-delete"),
 
   markBookDelete: (id: Id) => api.post(`/books/${id}/mark-delete`),
   unmarkBookDelete: (id: Id) => api.post(`/books/${id}/unmark-delete`),
-
 };
 
 export default api;

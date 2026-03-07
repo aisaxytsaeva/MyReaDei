@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import Session, joinedload
-from models.books import Book
-from models.reservations import Reservation
-from models.user_read_books import UserReadBooks
-from models.locations import Location
-from schemas.reservation import ReservationCreate, ReservationResponse, ReturnPeriod, LocationInfo
+from app.models.books import Book
+from app.models.reservations import Reservation
+from app.models.user_read_books import UserReadBooks
+from app.models.locations import Location
+from app.schemas.reservation import ReservationCreate, ReservationResponse, ReturnPeriod, LocationInfo
 
 def get_user_completed_reservations_count(db: Session, user_id: int) -> int:
     return db.query(Reservation).filter(

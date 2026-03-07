@@ -1,10 +1,10 @@
 from requests import Session
 
-from core.permissions import UserRole
-from core.security import get_password_hash, verify_password
-from models.users import User
-from schemas.auth import UserRegister
-from schemas.user import UserUpdate
+from app.core.permissions import UserRole
+from app.core.security import get_password_hash, verify_password
+from app.models.users import User
+from app.schemas.auth import UserRegister
+from app.schemas.user import UserUpdate
 
 
 def get_user_by_username(db: Session, username: str) -> User | None:

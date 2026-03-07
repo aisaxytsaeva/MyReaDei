@@ -3,11 +3,11 @@ from typing import List
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from core.permissions import BookPermission, LocationPermission, UserRole
-from core.config import settings
-from core.db import get_db
+from .permissions import BookPermission, LocationPermission, UserRole
+from .config import settings
+from .db import get_db
 from jose import JWTError, jwt
-from models.users import User
+from app.models.users import User
 from passlib.context import CryptContext
 from uuid import uuid4
 

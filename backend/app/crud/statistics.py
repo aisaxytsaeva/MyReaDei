@@ -1,15 +1,14 @@
 from sqlalchemy import func, desc
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from models.book_location import BookLocation
-from models.locations import Location
-from schemas.statistics import PlatformStats, PopularBook, PopularLocation
-from models.books import Book
-from models.reservations import Reservation
-from models.users import User
-from sqlalchemy import func, desc
+from app.models.book_location import BookLocation
+from app.models.locations import Location
+from app.schemas.statistics import PlatformStats, PopularBook, PopularLocation
+from app.models.books import Book
+from app.models.reservations import Reservation
+from app.models.users import User
 from datetime import datetime, timedelta
-from typing import List, Optional
+
 
 def get_popular_books(db: Session, skip: int = 0, limit: int = 10, days: Optional[int] = None) -> List[PopularBook]:
     query = db.query(

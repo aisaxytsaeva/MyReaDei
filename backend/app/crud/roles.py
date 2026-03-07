@@ -2,9 +2,9 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
-from crud.user import get_user_by_id
-from models.users import User
-from core.permissions import UserRole
+from app.crud.user import get_user_by_id
+from app.models.users import User
+from app.core.permissions import UserRole
 
 
 

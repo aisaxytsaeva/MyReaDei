@@ -2,7 +2,7 @@ from datetime import datetime
 import re
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationError
-from core.permissions import UserRole
+from app.core.permissions import UserRole
 
 
 class UserBase(BaseModel):

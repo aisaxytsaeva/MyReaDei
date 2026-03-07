@@ -1,0 +1,55 @@
+services:
+  db:
+    image: postgres:16
+    container_name: myreadei_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: MyReaDei
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: myreadei_redis
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: myreadei_backend
+    environment:
+      DATABASE_URL: postgresql://postgres:root@db:5432/MyReaDei
+      SECRET_KEY: your-secret-key-here-change-in-production
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+
+      REDIS_URL: redis://redis:6379/0
+
+      COOKIE_SECURE: "false"
+      COOKIE_SAMESITE: lax
+      REFRESH_COOKIE_NAME: refresh_token
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_static:/app/static
+  frontend:
+    build:
+      context: ./frontend/my-react-app
+      dockerfile: Dockerfile
+    container_name: myreadei_frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  pgdata:
+  backend_static:

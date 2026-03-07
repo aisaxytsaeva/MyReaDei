@@ -2,21 +2,21 @@ from typing import List
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from schemas.books import BookForDelete
-from crud import book as books_crud
-from core.db import get_db
-from core.security import get_current_user, require_admin, get_user_permissions
-from models.users import User
-from core.permissions import UserRole
+from app.schemas.books import BookForDelete
+from app.crud import book as books_crud
+from app.core.db import get_db
+from app.core.security import get_current_user, require_admin, get_user_permissions
+from app.models.users import User
+from app.core.permissions import UserRole
 
-from schemas.roles import (
+from app.schemas.roles import (
     RoleUpdateRequest,
     ActiveUpdateRequest,
     AdminUserResponse,
     RolesListResponse,
     PermissionsResponse,
 )
-from crud import roles as roles_crud
+from app.crud import roles as roles_crud
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 

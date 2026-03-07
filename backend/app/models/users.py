@@ -1,6 +1,6 @@
 
-from core.permissions import UserRole
-from core.db import Base
+from app.core.permissions import UserRole
+from app.core.db import Base
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship

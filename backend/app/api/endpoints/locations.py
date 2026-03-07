@@ -2,13 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import List
-from core.permissions import UserRole
-from crud import locations
-from core.db import get_db
-from core.security import get_current_user, require_moderator_or_admin
+from app.core.permissions import UserRole
+from app.crud import locations
+from app.core.db import get_db
+from app.core.security import get_current_user, require_moderator_or_admin
 
-from models.users import User
-from schemas.location import LocationCreate, LocationResponse, LocationUpdate, LocationWithStats
+from app.models.users import User
+from app.schemas.location import LocationCreate, LocationResponse, LocationUpdate, LocationWithStats
 
 router = APIRouter(prefix="/locations", tags=["locations"])
 
