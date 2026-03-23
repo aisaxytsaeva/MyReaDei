@@ -1,9 +1,8 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.api.endpoints import auth_router, books_router, users_router, locations_router, reservation_router, statitics_router, admin_roles_router
+from app.api.endpoints import auth_router, books_router, users_router, locations_router, reservation_router, statitics_router, admin_roles_router, tags_router
 from app.core.db import Base, engine
-from app.models import Book, BookLocation, Location, User, UserReadBooks, Reservation
 import time
 import logging
 from pathlib import Path
@@ -68,7 +67,7 @@ async def log_requests(request: Request, call_next):
     process_time = time.time() - start_time
 
     logger.info(
-        f"📤 RESPONSE: {request.method} {request.url.path} | "
+        f"RESPONSE: {request.method} {request.url.path} | "
         f"Status: {response.status_code} | "
         f"Time: {process_time:.3f}s"
     )
@@ -80,10 +79,12 @@ async def log_requests(request: Request, call_next):
 app.include_router(auth_router, prefix="", tags=["auth"])
 app.include_router(users_router, prefix="", tags=["users"])
 app.include_router(books_router, prefix="", tags=["books"])
+app.include_router(tags_router, prefix="", tags=["tags"])
 app.include_router(locations_router, prefix="", tags=["locations"])  
 app.include_router(reservation_router, prefix="", tags=["reservations"]) 
 app.include_router(statitics_router, prefix="", tags=["statistics"]) 
-app.include_router(admin_roles_router, prefix="", tags=["admin_roles"]) 
+app.include_router(admin_roles_router, prefix="", tags=["admin"]) 
+
 
 
 @app.get("/")

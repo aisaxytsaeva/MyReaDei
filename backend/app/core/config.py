@@ -15,6 +15,17 @@ class Settings(BaseSettings):
     REFRESH_COOKIE_NAME: str = "refresh_token"
     REDIS_URL: str = "redis://localhost:6379/0"
     
+    STORAGE_TYPE: str = "minio"
+    MINIO_ENDPOINT: str = "localhost:9000"
+    MINIO_ACCESS_KEY: str = "minioadmin"
+    MINIO_SECRET_KEY: str = "minioadmin"
+    MINIO_BUCKET: str = "book-covers"
+    MINIO_SECURE: bool = False
+    MINIO_PUBLIC_URL: str = "http://localhost:9000"
+
+    MAX_FILE_SIZE: int = 10485760  # 10MB
+    ALLOWED_EXTENSIONS: str = "jpg,jpeg,png,gif,webp"
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

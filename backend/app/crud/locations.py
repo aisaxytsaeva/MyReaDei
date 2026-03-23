@@ -149,7 +149,7 @@ def get_locations_nearby(
     ]
 
 
-def get_user_locations(db: Session, user_id: int) -> List[LocationResponse]:  # ⬅️ Измени тип
+def get_user_locations(db: Session, user_id: int) -> List[LocationResponse]:  
     locations = db.query(Location)\
         .filter(Location.created_by == user_id)\
         .order_by(Location.created_at.desc())\
@@ -161,7 +161,7 @@ def get_user_locations(db: Session, user_id: int) -> List[LocationResponse]:  # 
     ]
 
 
-def get_location_with_stats(db: Session, location_id: int) -> Optional[LocationWithStats]:  # ⬅️ Используй схему!
+def get_location_with_stats(db: Session, location_id: int) -> Optional[LocationWithStats]:  
     location = db.query(Location).filter(Location.id == location_id).first()
     
     if not location:

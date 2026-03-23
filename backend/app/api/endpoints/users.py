@@ -69,6 +69,16 @@ async def get_my_books(
     user_books = books_crud.get_users_books(db, current_user.id, skip=skip, limit=limit)
     return user_books
 
+@router.get("/{user_id}/books", response_model=List[Catalog])
+async def get_my_books(
+    user_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db)
+):
+    user_books = books_crud.get_users_books(db, user_id, skip=skip, limit=limit)
+    return user_books
+
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(

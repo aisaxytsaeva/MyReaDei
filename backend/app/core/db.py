@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import Column, ForeignKey, Table, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from .config import settings
@@ -20,3 +20,11 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+association_table = Table(
+    "association_table",
+    Base.metadata,
+    Column("book_id", ForeignKey("books.id")),
+    Column("tag_id", ForeignKey("tags.id")),
+)
