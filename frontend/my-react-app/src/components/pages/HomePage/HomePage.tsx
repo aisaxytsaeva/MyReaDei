@@ -1,4 +1,3 @@
-// src/components/pages/HomePage/HomePage.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BookCard from "../../UI/Book/BookCard";
@@ -6,16 +5,9 @@ import SearchBar from "../../UI/Book/SearchBar";
 import Header from "../../UI/Header/Header";
 import { useAuth } from "../../../context/AuthContext";
 import "./HomePage.css";
+import { HomeBookCard } from "../../../types";
 
-import { bookApi, type Id, type Book } from "../../../lib/api";
-
-type HomeBookCard = {
-  id: Id;
-  title: string;
-  author: string;
-  cover_image_uri?: string | null;
-  readers_count?: number;
-};
+import { bookApi, type Id, type Book, type Tag } from "../../../lib/api";
 
 const getDemoBooks = (): HomeBookCard[] => [
   { id: 1, title: "Мастер и Маргарита", author: "Михаил Булгаков" },
@@ -31,6 +23,13 @@ const HomePage: React.FC = () => {
   const [popularBooks, setPopularBooks] = useState<HomeBookCard[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [loadingTags, setLoadingTags] = useState<boolean>(false);
+  const [showTagFilter, setShowTagFilter] = useState<boolean>(false);
+  const [filteredBooks, setFilteredBooks] = useState<HomeBookCard[]>([]);
+  const [filtering, setFiltering] = useState<boolean>(false);
 
   const { user, token } = useAuth();
   const isAuthenticated = !!user && !!token;
@@ -39,16 +38,23 @@ const HomePage: React.FC = () => {
 
   useEffect(() => {
     void fetchPopularBooks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void fetchAllTags();
   }, []);
+
+  useEffect(() => {
+    if (selectedTagIds.length > 0) {
+      void fetchBooksByTags();
+    } else {
+      setFilteredBooks(popularBooks);
+    }
+  }, [selectedTagIds, popularBooks]);
 
   const fetchPopularBooks = async (): Promise<void> => {
     try {
       setLoading(true);
       setError("");
 
-      // В api.ts уже есть getPopularBooks(limit)
-      const resp = await bookApi.getPopularBooks(6);
+      const resp = await bookApi.getPopularBooks(50);
       const data = resp.data as any[];
 
       const formatted: HomeBookCard[] = data.map((b) => ({
@@ -60,12 +66,52 @@ const HomePage: React.FC = () => {
       }));
 
       setPopularBooks(formatted);
+      setFilteredBooks(formatted);
     } catch (err) {
-      console.error("❌ Ошибка загрузки книг:", err);
+      console.error("Ошибка загрузки книг:", err);
       setError("Не удалось загрузить книги");
       setPopularBooks(getDemoBooks());
+      setFilteredBooks(getDemoBooks());
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllTags = async (): Promise<void> => {
+    try {
+      setLoadingTags(true);
+      const resp = await bookApi.getTags(0, 100);
+      setAllTags(resp.data as Tag[]);
+    } catch (err) {
+      console.error(" Ошибка загрузки тегов:", err);
+      setAllTags([]);
+    } finally {
+      setLoadingTags(false);
+    }
+  };
+
+  const fetchBooksByTags = async (): Promise<void> => {
+    if (selectedTagIds.length === 0) return;
+    
+    try {
+      setFiltering(true);
+      const resp = await bookApi.getBooksByTags(selectedTagIds, true, 0, 20);
+      const data = resp.data as any[];
+      
+      const formatted: HomeBookCard[] = data.map((b) => ({
+        id: b.id,
+        title: b.title ?? "Без названия",
+        author: b.author ?? "Неизвестный автор",
+        cover_image_uri: b.cover_image_uri ?? null,
+        readers_count: b.readers_count ?? b.reader_count ?? 0,
+      }));
+      
+      setFilteredBooks(formatted);
+    } catch (err) {
+      console.error("❌ Ошибка фильтрации по тегам:", err);
+      setFilteredBooks([]);
+    } finally {
+      setFiltering(false);
     }
   };
 
@@ -83,7 +129,7 @@ const HomePage: React.FC = () => {
         },
       });
     } catch (err) {
-      console.error("❌ Ошибка поиска:", err);
+      console.error("Ошибка поиска:", err);
       navigate("/search", {
         state: {
           searchQuery: query,
@@ -95,6 +141,22 @@ const HomePage: React.FC = () => {
 
   const handleBookClick = (bookId: Id): void => {
     navigate(`/book/${bookId}`);
+  };
+
+  const handleTagToggle = (tagId: number): void => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId)
+        ? prev.filter((id) => id !== tagId)
+        : [...prev, tagId]
+    );
+  };
+
+  const handleClearTags = (): void => {
+    setSelectedTagIds([]);
+  };
+
+  const handleGoToTagManagement = (): void => {
+    navigate("/tags");
   };
 
   return (
@@ -109,68 +171,126 @@ const HomePage: React.FC = () => {
         />
       </div>
 
+      <button
+        onClick={() => setShowTagFilter(!showTagFilter)}
+        className={`filter-toggle-btn ${showTagFilter ? 'active' : ''}`}
+      >
+        {showTagFilter ? " Скрыть фильтр" : " Фильтр по тегам"}
+      </button>
+
+  
+      {showTagFilter && (
+        <div className="tags-filter-panel">
+          <div className="tags-filter-header">
+            <h3 className="tags-filter-title">
+              {selectedTagIds.length > 0 
+                ? `Выбрано тегов: ${selectedTagIds.length}` 
+                : "Выберите теги для фильтрации"}
+              {selectedTagIds.length > 0 && (
+                <span className="selected-count">{selectedTagIds.length}</span>
+              )}
+            </h3>
+            {selectedTagIds.length > 0 && (
+              <button
+                onClick={handleClearTags}
+                className="clear-tags-btn"
+              >
+                Сбросить
+              </button>
+            )}
+          </div>
+
+          {loadingTags ? (
+            <div className="loading-container">
+              <div className="loading-spinner" />
+            </div>
+          ) : allTags.length === 0 ? (
+            <div className="empty-state">
+              <p>Нет доступных тегов</p>
+              {isAuthenticated && (
+                <button
+                  onClick={handleGoToTagManagement}
+                  className="reset-filter-btn"
+                  style={{ marginTop: "10px" }}
+                >
+                  Создать тег
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="tags-grid">
+                {allTags.map((tag) => (
+                  <label
+                    key={tag.id}
+                    className={`tag-checkbox-label ${selectedTagIds.includes(tag.id) ? 'selected' : ''}`}
+                    onClick={() => handleTagToggle(tag.id)}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedTagIds.includes(tag.id)}
+                      onChange={() => {}}
+                    />
+                    <span className="tag-name">{tag.tag_name}</span>
+                    {selectedTagIds.includes(tag.id) && (
+                      <span className="tag-check">✓</span>
+                    )}
+                  </label>
+                ))}
+              </div>
+
+              {selectedTagIds.length > 0 && (
+                <div className={`filter-info ${filtering ? 'loading' : ''}`}>
+                  {filtering ? "Поиск книг..." : `Найдено книг: ${filteredBooks.length}`}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {error && (
-        <div
-          style={{
-            color: "#721c24",
-            backgroundColor: "#f8d7da",
-            border: "1px solid #f5c6cb",
-            borderRadius: "5px",
-            padding: "15px",
-            margin: "20px auto",
-            maxWidth: "600px",
-            textAlign: "center",
-          }}
-        >
+        <div className="error-message">
           {error} (используются демо-данные)
         </div>
       )}
 
       <section className="popular-books-section">
-        <h2
-          className="section-title"
-          style={{
-            textAlign: "center",
-            margin: "30px 0",
-            color: "#333",
-            fontSize: "28px",
-            fontWeight: 600,
-            width: "100%",
-          }}
-        >
-          {loading ? "Загрузка..." : "Что популярно сейчас!"}
+        <h2 className="section-title">
+          {loading || filtering
+            ? "Загрузка..." 
+            : selectedTagIds.length > 0
+            ? `Книги по выбранным тегам (${filteredBooks.length})`
+            : "Что популярно сейчас!"}
         </h2>
 
         {loading ? (
-          <div style={{ textAlign: "center", padding: "50px" }}>
-            <div
-              style={{
-                display: "inline-block",
-                width: "40px",
-                height: "40px",
-                border: "4px solid #f3f3f3",
-                borderTop: "4px solid #3498db",
-                borderRadius: "50%",
-                animation: "spin 1s linear infinite",
-              }}
-            />
-            <style>{`
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `}</style>
+          <div className="loading-container">
+            <div className="loading-spinner" />
+          </div>
+        ) : filteredBooks.length === 0 && selectedTagIds.length > 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">😕</div>
+            <h3 className="empty-state-title">Книги не найдены</h3>
+            <p className="empty-state-text">
+              Книги с выбранными тегами не найдены
+            </p>
+            <button
+              onClick={handleClearTags}
+              className="reset-filter-btn"
+            >
+              Сбросить фильтр
+            </button>
           </div>
         ) : (
           <div className="books-grid">
-            {popularBooks.map((book) => (
+            {filteredBooks.map((book) => (
               <div
                 key={String(book.id)}
                 onClick={() => handleBookClick(book.id)}
-                style={{ cursor: "pointer" }}
+                className="book-card-wrapper"
               >
-               <BookCard book={book} />
-
+                <BookCard book={book} />
               </div>
             ))}
           </div>

@@ -21,14 +21,45 @@ const BookCard: React.FC<Props> = ({ book }) => {
     navigate(`/book/${id}`);
   };
 
+  // Функция для получения правильного URL обложки
+  const getImageUrl = (uri: string | null | undefined): string | null => {
+    if (!uri) return null;
+    
+    // Если URL уже полный (начинается с http:// или https://)
+    if (uri.startsWith('http://') || uri.startsWith('https://')) {
+      return uri;
+    }
+    
+    // Если относительный URL (начинается с /)
+    if (uri.startsWith('/')) {
+      return `http://localhost:8000${uri}`;
+    }
+    
+    // Если что-то другое
+    return uri;
+  };
+
+  const imageUrl = getImageUrl(cover_image_uri);
+
+  console.log("BookCard - cover_image_uri:", cover_image_uri);
+  console.log("BookCard - imageUrl:", imageUrl);
+
   return (
     <div onClick={handleBookClick} className={styles.bookCard}>
       <div className={styles.cover}>
-        {cover_image_uri ? (
+        {imageUrl ? (
           <img
-            src={`http://127.0.0.1:8000${cover_image_uri}`}
+            src={imageUrl}
             alt={title ?? "Book cover"}
             className={styles.coverImage}
+            onError={(e) => {
+              console.error("Failed to load image:", imageUrl);
+              e.currentTarget.style.display = "none";
+              const placeholder = e.currentTarget.parentElement?.querySelector('.coverPlaceholder');
+              if (placeholder) {
+                (placeholder as HTMLElement).style.display = "flex";
+              }
+            }}
           />
         ) : (
           <div className={styles.coverPlaceholder}>📚</div>

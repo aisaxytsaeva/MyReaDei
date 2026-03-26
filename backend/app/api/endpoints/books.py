@@ -22,13 +22,24 @@ async def create_book(
     title: str = Form(..., description="Название книги"),
     author: str = Form(..., description="Автор книги"),
     description: Optional[str] = Form(None, description="Описание книги"),
-    location_ids: List[int] = Form(..., description="ID локаций где находится книга"),
-    tag_ids: Optional[List[int]] = Form(None, description="ID тегов книги"),
+    location_ids: str = Form(..., description="ID локаций (через запятую, например: 1,2,3)"),
+    tag_ids: Optional[str] = Form(None, description="ID тегов (через запятую, например: 1,2,3)"),
     cover_image: Optional[UploadFile] = File(None, description="Обложка книги"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     cover_image_key = None
+    
+    def parse_ids(ids_str: str) -> List[int]:
+        if not ids_str or ids_str.strip() == "":
+            return []
+        try:
+            return [int(x.strip()) for x in ids_str.split(',') if x.strip()]
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid IDs format: {ids_str}. Expected comma-separated integers like '1,2,3'"
+            )
     
     try:
         if cover_image:
@@ -36,13 +47,16 @@ async def create_book(
             cover_image_key = file_info["filename"]
             logger.info(f"File uploaded to MinIO: {cover_image_key}")
         
+        parsed_location_ids = parse_ids(location_ids)
+        parsed_tag_ids = parse_ids(tag_ids) if tag_ids else []
+        
         book_data = BookCreate(
             title=title,
             author=author,
             description=description or "",
             cover_image_key=cover_image_key,  
-            location_ids=location_ids,
-            tag_ids=tag_ids or [],    
+            location_ids=parsed_location_ids,
+            tag_ids=parsed_tag_ids,    
         )
         
         created_book = books_crud.create_book(db, book_data, current_user.id)
@@ -83,7 +97,7 @@ async def replace_book_cover(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Заменить обложку книги"""
+
     try:
         updated_book = await books_crud.replace_book_cover(db, book_id, cover_image, current_user.id)
         
@@ -112,7 +126,6 @@ async def delete_book_cover(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Удалить обложку книги"""
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
@@ -145,7 +158,6 @@ async def refresh_book_cover_url(
     book_id: int,
     db: Session = Depends(get_db)
 ):
-    """Обновить URL обложки (если истек срок действия)"""
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
@@ -166,7 +178,6 @@ async def get_catalog(
     tag_ids: Optional[List[int]] = Query(None, description="Фильтр по тегам"),
     db: Session = Depends(get_db)
 ):
-    """Получить каталог книг"""
     if tag_ids:
         books = books_crud.search_books_by_tags(db, tag_ids, skip=skip, limit=limit)
         catalog_books = []
@@ -192,7 +203,6 @@ async def get_book(
     book_id: int,
     db: Session = Depends(get_db)
 ):
-    """Получить детальную информацию о книге"""
     book = books_crud.get_book_with_details(db, book_id)
     if not book:
         raise HTTPException(
@@ -208,13 +218,13 @@ async def update_book(
     title: Optional[str] = Form(None, description="Название книги"),
     author: Optional[str] = Form(None, description="Автор книги"),
     description: Optional[str] = Form(None, description="Описание книги"),
-    location_ids: Optional[str] = Form(None, description="ID локаций (через запятую, например: 1,2,3)"),
-    tag_ids: Optional[str] = Form(None, description="ID тегов (через запятую, например: 1,2,3)"),
+    location_ids: Optional[str] = Form(None, description="ID локаций "),
+    tag_ids: Optional[str] = Form(None, description="ID тегов)"),
+    status: Optional[str] = Form(None, description="Статус книги"),
     cover_image: Optional[UploadFile] = File(None, description="Новая обложка книги"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
@@ -247,25 +257,33 @@ async def update_book(
         parsed_location_ids = parse_ids(location_ids)
         parsed_tag_ids = parse_ids(tag_ids)
         
-        book_update_data = BookUpdate(
-            title=title if title else None,
-            author=author if author else None,
-            description=description if description else None,
-            cover_image_key=cover_image_key if new_cover_uploaded else None,
-            location_ids=parsed_location_ids,
-            tag_ids=parsed_tag_ids
-        )
+        update_dict = {}
         
-        has_updates = any([
-            title is not None, author is not None, description is not None,
-            status is not None, parsed_tag_ids is not None, new_cover_uploaded
-        ])
-        
-        if has_updates:
-            books_crud.update_book(db, book_id, book_update_data, current_user.id)
-        
+        if title is not None:
+            update_dict["title"] = title
+        if author is not None:
+            update_dict["author"] = author
+        if description is not None:
+            update_dict["description"] = description
+        if status is not None:
+            update_dict["status"] = status
+        if new_cover_uploaded:
+            update_dict["cover_image_key"] = cover_image_key
+        if parsed_tag_ids is not None:
+            update_dict["tag_ids"] = parsed_tag_ids
         if parsed_location_ids is not None:
-            books_crud.update_book_locations(db, book_id, parsed_location_ids, current_user.id)
+            update_dict["location_ids"] = parsed_location_ids
+        
+        if not update_dict:
+            book_with_details = books_crud.get_book_with_details(db, book_id)
+            return {
+                "message": "No fields to update",
+                "book": book_with_details
+            }
+        
+        book_update_data = BookUpdate(**update_dict)
+        
+        books_crud.update_book(db, book_id, book_update_data, current_user.id)
         
         book_with_details = books_crud.get_book_with_details(db, book_id)
         
@@ -301,7 +319,6 @@ async def update_book(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error while updating book"
         )
-
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_book(

@@ -168,7 +168,7 @@ def update_book(
     if book.owner_id != user_id:
         raise ValueError("Вы не являетесь владельцем этой книги")
 
-    if book_data.status and book_data.status != book.status:
+    if book_data.status is not None and book_data.status != book.status:
         active_reservations = db.query(Reservation).filter(
             Reservation.book_id == book_id,
             Reservation.status.in_(["pending", "confirmed_by_owner", "handed_over"])
@@ -180,7 +180,7 @@ def update_book(
     try:
         update_data = book_data.dict(exclude_unset=True)
         
-        excluded_fields = ['location_ids', 'tag_ids', 'tag_names', 'cover_image_key']
+        excluded_fields = ['location_ids', 'tag_ids', 'cover_image_key']
         
         for field, value in update_data.items():
             if field not in excluded_fields:
@@ -200,17 +200,6 @@ def update_book(
         if 'tag_ids' in update_data and update_data['tag_ids'] is not None:
             tags = db.query(Tag).filter(Tag.id.in_(update_data['tag_ids'])).all()
             book.tags = tags
-        
-        if 'tag_names' in update_data and update_data['tag_names'] is not None:
-            new_tags = []
-            for tag_name in update_data['tag_names']:
-                tag = db.query(Tag).filter(Tag.tag_name == tag_name).first()
-                if not tag:
-                    tag = Tag(tag_name=tag_name)
-                    db.add(tag)
-                    db.flush()
-                new_tags.append(tag)
-            book.tags = new_tags
 
         book.updated_at = func.now()
         

@@ -35,10 +35,10 @@ def update_tag(db:Session, tag_id: int, tag_data: TagUpdate) -> TagResponse:
         )
     
     if tag_data.tag_name is not None:
-        db_tag.tag_name == tag_data.tag_name
+        db_tag.tag_name = tag_data.tag_name
 
     if tag_data.description is not None:
-        db_tag.description == tag_data.description
+        db_tag.description = tag_data.description
 
     try:
         db.commit()

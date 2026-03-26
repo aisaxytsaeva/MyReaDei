@@ -19,7 +19,6 @@ html, body {
   bottom: 0;
 }
 
-/* Фиксированный Header */
 .fixed-header {
   position: fixed;
   top: 0;
@@ -31,20 +30,19 @@ html, body {
   width: 100%;
 }
 
-/* Основной контент занимает всё оставшееся пространство */
 .main-content {
   flex: 1;
   width: 100%;
-  margin-top: 80px; /* Отступ для фиксированного Header */
+  margin-top: 80px; 
   height: calc(100vh - 80px);
   overflow-y: auto;
   display: flex;
   justify-content: center;
 }
 
-/* Обёртка для центрирования контента */
-.content-wrapper {
+.mcontent-wrapper {
   width: 100%;
+  color: transparent;
   max-width: 1200px;
   padding: 30px 20px;
   display: flex;
@@ -66,7 +64,6 @@ html, body {
   font-weight: 600;
 }
 
-/* Список книг - занимает всё доступное пространство */
 .books-list {
   width: 100%;
   display: flex;
@@ -98,7 +95,6 @@ html, body {
   padding-right: 20px;
 }
 
-/* Используем стили BookCard без изменений */
 .book-info-section :global(.bookCard) {
   margin: 0;
   border: none;
@@ -128,7 +124,6 @@ html, body {
   color: #711720;
 }
 
-/* Квадратная кнопка удаления 80x80 */
 .delete-button {
   width: 80px;
   height: 80px;
@@ -180,7 +175,6 @@ html, body {
   transform: scale(1.1);
 }
 
-/* Квадратная кнопка добавления 80x80 внизу справа */
 .add-book-button {
   position: fixed;
   bottom: 40px;

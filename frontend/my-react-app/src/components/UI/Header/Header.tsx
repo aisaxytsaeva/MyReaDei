@@ -12,20 +12,22 @@ const Header: React.FC = () => {
   const handleLogin = () => navigate("/auth");
   const handleProfileClick = () => navigate("/profile");
   const goAdmin = () => navigate("/admin");
+  const goModerator = () => navigate("/moderator");
 
   const isAuthPage =
     location.pathname === "/auth" || location.pathname === "/registration";
 
   const isProfilePage = location.pathname === "/profile";
   const isAdminPage = location.pathname.startsWith("/admin");
+  const isModeratorPage = location.pathname.startsWith("/moderator");
 
   const isAdmin = user?.role === "admin";
+  const isModerator = user?.role === "moderator";
 
   return (
     <header className="app-header">
       <div className="app-header__inner">
-        
-        {/* ЛОГО */}
+
         <div className="app-header__logo" onClick={handleLogoClick}>
           <img
             src="/assets/logo.svg"
@@ -35,10 +37,8 @@ const Header: React.FC = () => {
           <h1 className="app-header__title">MyReaDei</h1>
         </div>
 
-        {/* ПРАВАЯ ЧАСТЬ */}
         <div className="app-header__right">
 
-          {/* КНОПКА АДМИНА */}
           {isAdmin && !isAdminPage && (
             <button
               className="app-header__adminBtn"
@@ -49,7 +49,16 @@ const Header: React.FC = () => {
             </button>
           )}
 
-          {/* ПРОФИЛЬ */}
+          {isModerator && !isModeratorPage && !isAdmin && (
+            <button
+              className="app-header__moderatorBtn"
+              onClick={goModerator}
+              type="button"
+            >
+              Панель модератора
+            </button>
+          )}
+
           {user && !isProfilePage ? (
             <button
               className="app-header__iconBtn"

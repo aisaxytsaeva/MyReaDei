@@ -1,0 +1,403 @@
+
+.tm-page {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.tm-content {
+  flex: 1;
+  width: 100%;
+  padding: 30px 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.tm-container {
+  width: 100%;
+  max-width: 1200px;
+}
+
+/* Хедер */
+.tm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.tm-header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.tm-back-button {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #711720;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.tm-back-button:hover {
+  background-color: rgba(113, 23, 32, 0.1);
+  transform: translateX(-2px);
+}
+
+.tm-title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #222;
+}
+
+.tm-stats {
+  background: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.tm-stats-count {
+  font-size: 14px;
+  font-weight: 500;
+  color: #711720;
+}
+
+.tm-description {
+  margin-bottom: 30px;
+  padding: 16px 20px;
+  background: white;
+  border-radius: 12px;
+  border-left: 4px solid #711720;
+}
+
+.tm-description p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.tm-error-message {
+  background: #ffe6e6;
+  border: 1px solid #ffb3b3;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.tm-error-message p {
+  margin: 0;
+  color: #8a1f1f;
+}
+
+.tm-retry-btn {
+  background-color: #711720;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.tm-retry-btn:hover {
+  background-color: #8B2C2C;
+}
+
+.tm-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 20px;
+}
+
+.tm-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #711720;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+
+.delete-icon {
+  width: 30px;
+  height: 30px;
+  filter: brightness(0) invert(1);
+  transition: transform 0.3s ease;
+}
+.tm-empty {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 16px;
+}
+
+.tm-empty-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  opacity: 0.7;
+}
+
+.tm-empty h3 {
+  margin: 0 0 10px;
+  font-size: 24px;
+  color: #333;
+}
+
+.tm-empty p {
+  margin: 0 0 25px;
+  color: #666;
+}
+
+.tm-empty-create-btn {
+  background-color: #711720;
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.tm-empty-create-btn:hover {
+  background-color: #8B2C2C;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(113, 23, 32, 0.3);
+}
+
+/* Сетка тегов */
+.tm-tags-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+/* Карточка тега */
+.tm-tag-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.tm-tag-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.tm-tag-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.tm-tag-info {
+  flex: 1;
+}
+
+.tm-tag-name {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  word-break: break-word;
+}
+
+.tm-tag-description {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.tm-tag-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tm-edit-btn,
+.tm-delete-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.tm-edit-btn {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.tm-edit-btn:hover:not(:disabled) {
+  background-color: #e0e0e0;
+  transform: scale(1.05);
+}
+
+.tm-delete-btn {
+  background-color: #ffe6e6;
+  color: #8a1f1f;
+}
+
+.tm-delete-btn:hover:not(:disabled) {
+  background-color: #ffd1d1;
+  transform: scale(1.05);
+}
+
+.tm-edit-btn:disabled,
+.tm-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Плавающая кнопка создания */
+.tm-add-button {
+  position: fixed;
+  bottom: 40px;
+  right: 40px;
+  width: 80px;
+  height: 80px;
+  border-radius: 0;
+  background-color: #711720;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 25px rgba(113, 23, 32, 0.4);
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.tm-add-button:hover {
+  transform: scale(1.05);
+  background-color: #8B2C2C;
+  box-shadow: 0 8px 30px rgba(113, 23, 32, 0.5);
+}
+
+.tm-add-button:active {
+  transform: scale(0.98);
+}
+
+.tm-plus-icon {
+  width: 40px;
+  height: 40px;
+  filter: brightness(0) invert(1);
+}
+
+/* Ошибка доступа */
+.tm-error {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 16px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.tm-error h2 {
+  margin: 0 0 15px;
+  font-size: 28px;
+  color: #8a1f1f;
+}
+
+.tm-error p {
+  margin: 0 0 25px;
+  color: #666;
+}
+
+.tm-back-btn {
+  background-color: #711720;
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s;
+}
+
+.tm-back-btn:hover {
+  background-color: #8B2C2C;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .tm-content {
+    padding: 20px 15px;
+  }
+  
+  .tm-title {
+    font-size: 24px;
+  }
+  
+  .tm-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .tm-header-left {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .tm-tags-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .tm-add-button {
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+  }
+  
+  .tm-plus-icon {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .tm-tag-content {
+    flex-direction: column;
+  }
+  
+  .tm-tag-actions {
+    align-self: flex-end;
+  }
+}

@@ -56,7 +56,7 @@ const RegistrationPage: React.FC = () => {
         username: formData.username,
         email: formData.email,
         password: formData.password,
-        full_name: formData.username, // как у тебя было
+        full_name: formData.username, 
       });
 
       setSuccess(true);
@@ -75,49 +75,32 @@ const RegistrationPage: React.FC = () => {
       if (status === 404) {
         setError(
           [
-            "❌ Ошибка 404 - Эндпоинт не найден",
-            "",
-            "Что проверить:",
-            "1. Запущен ли бэкенд? (uvicorn main:app --reload)",
-            "2. Правильный ли URL? (http://127.0.0.1:8000/auth/register)",
-            "3. Добавлен ли роутер в main.py?",
-            "",
-            "Откройте: http://127.0.0.1:8000/docs",
-            "Проверьте наличие POST /auth/register",
+            " Ошибка 404 ",
           ].join("\n")
         );
       } else if (status === 422) {
-        setError("❌ Ошибка валидации данных. Проверьте формат.");
+        setError("Ошибка валидации данных. Проверьте формат.");
       } else if (status === 400) {
         setError(
           typeof detail === "string"
             ? detail
-            : "❌ Ошибка при создании пользователя"
+            : "Ошибка при создании пользователя"
         );
       } else if (!status) {
-        // сеть / CORS / сервер недоступен
+
         const msg = String(detail);
         if (msg.includes("Network") || msg.includes("Failed to fetch")) {
           setError(
             [
-              "❌ Не удалось подключиться к серверу",
-              "",
-              "Убедитесь, что:",
-              "1. Бэкенд запущен: uvicorn main:app --reload",
-              "2. Адрес правильный: http://127.0.0.1:8000",
-              "3. Нет ошибок CORS",
-              "",
-              "Проверка в браузере:",
-              "- Откройте http://127.0.0.1:8000",
-              '- Если видите {"message":"Hello World"} - бэкенд работает',
+              "Не удалось подключиться к серверу",
             ].join("\n")
           );
         } else {
-          setError(`❌ Ошибка: ${msg}`);
+          setError(`Ошибка: ${msg}`);
         }
       } else {
         setError(
-          `❌ Ошибка ${status}: ${
+          `Ошибка ${status}: ${
             typeof detail === "string" ? detail : "Неизвестная ошибка"
           }`
         );
@@ -137,16 +120,14 @@ const RegistrationPage: React.FC = () => {
         {success && (
           <div
             style={{
-              color: "#155724",
-              backgroundColor: "#d4edda",
-              border: "1px solid #c3e6cb",
+              color: "#000000",
               borderRadius: "5px",
               padding: "15px",
               marginBottom: "20px",
               textAlign: "center",
             }}
           >
-            ✅ Регистрация успешна! Перенаправляем на страницу входа...
+            Регистрация успешна! Перенаправляем на страницу входа...
           </div>
         )}
 
@@ -176,7 +157,7 @@ const RegistrationPage: React.FC = () => {
               value={formData.username}
               onChange={handleChange}
               className="form-input"
-              placeholder="test_user"
+              placeholder="username"
               disabled={loading || success}
               required
             />

@@ -19,7 +19,6 @@ const decodeJwtPayload = (token: string): JwtPayload | null => {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
 
-    
     const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
     const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
 
@@ -36,7 +35,7 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
-  const { setSession } = useAuth();
+  const { login: authLogin } = useAuth(); // Используем существующий метод login из контекста
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
@@ -51,49 +50,8 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const resp = await bookApi.login(login, password);
-      const data: LoginResponse = resp.data;
-
-      const accessToken = data.access_token;
-      if (!accessToken) {
-        setError("Сервер не вернул токен");
-        return;
-      }
-
-      // сохраняем токен (если у тебя интерцептор axios читает отсюда)
-      localStorage.setItem("token", accessToken);
-
-      // 2) профиль
-      let userData: any = null;
-
-      try {
-        const profileResp = await bookApi.getProfile();
-        const profile = profileResp.data as any;
-
-        userData = {
-          ...profile,
-          id: profile.id,
-          username: profile.username ?? login,
-          email: profile.email ?? `${login}@example.com`,
-          // role может прийти с бэка, но даже если нет — контекст возьмёт из JWT
-          role: profile.role,
-        };
-      } catch {
-        // fallback: пробуем достать id/role из JWT
-        const payload = decodeJwtPayload(accessToken);
-        const idFromToken = payload?.user_id ?? payload?.sub ?? 1;
-
-        userData = {
-          id: idFromToken,
-          username: login,
-          email: `${login}@example.com`,
-          role: (payload?.role as any) ?? "user",
-        };
-      }
-
-      // ✅ главное изменение: теперь используем setSession
-      await setSession(userData, accessToken);
-
+      // Используем метод login из AuthContext
+      await authLogin(login, password);
       navigate("/home");
     } catch (err: any) {
       const status: number | undefined = err?.response?.status;

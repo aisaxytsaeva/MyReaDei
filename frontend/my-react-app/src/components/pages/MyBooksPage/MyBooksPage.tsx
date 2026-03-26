@@ -37,7 +37,6 @@ const MyBooksPage: React.FC = () => {
     } else {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, token]);
 
   const fetchMyBooks = async (): Promise<void> => {
@@ -45,8 +44,6 @@ const MyBooksPage: React.FC = () => {
       setLoading(true);
       setError("");
 
-      // ВАЖНО: в api.ts должен быть метод:
-      // getMyUserBooks: () => api.get<Book[]>("/users/book/my")
       const response = await bookApi.getMyUserBooks();
 
       const data = response.data as Array<{
@@ -249,7 +246,7 @@ const MyBooksPage: React.FC = () => {
       )}
 
       <div className="main-content">
-        <div className="content-wrapper">
+        <div className="mcontent-wrapper">
           <div className="my-books-header">
             <h1 className="page-title">Мои книги</h1>
           </div>
@@ -328,7 +325,6 @@ const MyBooksPage: React.FC = () => {
             )}
           </div>
 
-          {/* Кнопка добавления книги */}
           <button
             onClick={handleAddBook}
             className="add-book-button"

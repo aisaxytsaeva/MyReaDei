@@ -9,6 +9,17 @@ export type CreateBookPayload = {
   author: string;
   description?: string;
   location_ids: number[];
+  tag_ids?: number[];  
+  cover_image?: File | null;
+};
+
+export type UpdateBookPayload = {
+  title?: string;
+  author?: string;
+  description?: string;
+  location_ids?: number[];
+  tag_ids?: number[];
+  status?: string;
   cover_image?: File | null;
 };
 
@@ -47,6 +58,22 @@ export type CreateLocationPayload = {
   longitude: "0";
 };
 
+export type Tag = {
+  id: number;
+  tag_name: string;
+  description?: string;
+};
+
+export type CreateTagPayload = {
+  tag_name: string;
+  description?: string;
+};
+
+export type UpdateTagPayload = {
+  tag_name?: string;
+  description?: string;
+};
+
 export type Book = {
   id: Id;
   title?: string;
@@ -57,6 +84,7 @@ export type Book = {
   owner_id?: Id | null;
   status?: BookStatus;
   locations?: Array<Location | string>;
+  tags?: Tag[];  
   reader_count?: number;
   available?: boolean;
   [key: string]: unknown;
@@ -77,13 +105,11 @@ export type Reservation = {
 
 export type Statistics = Record<string, unknown>;
 
-/** Auth */
 export type RegisterResponse = User; 
 
 export type LoginResponse = {
   access_token: string;
   token_type?: string;
-
   user?: User;
   [key: string]: unknown;
 };
@@ -100,7 +126,7 @@ const api: AxiosInstance = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true, // ВАЖНО для refresh-cookie (HttpOnly)
+  withCredentials: true,
 });
 
 /** Attach access token */
@@ -116,6 +142,7 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
 /** ===== Auto refresh on 401 ===== */
 let isRefreshing = false;
 let refreshQueue: Array<(token: string | null) => void> = [];
@@ -145,18 +172,15 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // не пытаться refresh для auth endpoints, чтобы не уйти в цикл
     if (isAuthEndpoint(originalRequest.url)) {
       return Promise.reject(error);
     }
 
-    // защита от бесконечных повторов
     if (originalRequest._retry) {
       return Promise.reject(error);
     }
     originalRequest._retry = true;
 
-    // если refresh уже выполняется — ждём
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
         refreshQueue.push((newToken) => {
@@ -171,7 +195,6 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      // refresh-cookie отправится автоматически (withCredentials: true)
       const resp = await api.post<LoginResponse>("/auth/refresh");
       const newToken = resp.data?.access_token;
 
@@ -185,7 +208,6 @@ api.interceptors.response.use(
 
       return api(originalRequest);
     } catch (refreshErr) {
-      // refresh не удался => очистить локальный access
       localStorage.removeItem("token");
       resolveQueue(null);
       return Promise.reject(refreshErr);
@@ -195,21 +217,19 @@ api.interceptors.response.use(
   }
 );
 
-/** API wrapper */
 export const bookApi = {
-  // --- Books ---
-  getCatalog: (skip = 0, limit = 100): Promise<AxiosResponse<Book[]>> =>
-    api.get<Book[]>("/books/catalog", { params: { skip, limit } }),
+  getCatalog: (skip = 0, limit = 100, tag_ids?: number[]): Promise<AxiosResponse<Book[]>> =>
+    api.get<Book[]>("/books/catalog", { params: { skip, limit, tag_ids: tag_ids?.join(',') } }),
 
   getBookById: (id: Id): Promise<AxiosResponse<Book>> => api.get<Book>(`/books/${id}`),
 
-  searchBooks: (query: string, skip = 0, limit = 100) =>
-    api.get<Book[]>("/books/search/", { params: { query, skip, limit } }),
+  searchBooks: (query: string, skip = 0, limit = 100, tag_ids?: number[]): Promise<AxiosResponse<Book[]>> =>
+    api.get<Book[]>("/books/search/", { params: { query, skip, limit, tag_ids: tag_ids?.join(',') } }),
 
   getPopularBooks: (limit = 10): Promise<AxiosResponse<Book[]>> =>
     api.get<Book[]>("/books/popular/", { params: { limit } }),
 
-  getMyBooks: (params?: { skip?: number; limit?: number }) =>
+  getMyBooks: (params?: { skip?: number; limit?: number }): Promise<AxiosResponse<Book[]>> =>
     api.get<Book[]>("/users/book/my", { params }),
 
   createBook: (bookData: {
@@ -217,6 +237,7 @@ export const bookApi = {
     author: string;
     description?: string;
     location_ids: number[];
+    tag_ids?: number[];
     cover_image?: File | null;
   }): Promise<AxiosResponse<Book>> => {
     const fd = new FormData();
@@ -225,8 +246,15 @@ export const bookApi = {
     fd.append("author", bookData.author);
     fd.append("description", bookData.description ?? "");
 
+    // location_ids - каждый ID отдельным полем
     for (const id of bookData.location_ids) {
       fd.append("location_ids", String(id));
+    }
+
+    if (bookData.tag_ids && bookData.tag_ids.length > 0) {
+      for (const id of bookData.tag_ids) {
+        fd.append("tag_ids", String(id));
+      }
     }
 
     if (bookData.cover_image) {
@@ -238,24 +266,107 @@ export const bookApi = {
     });
   },
 
-  updateBook: (id: Id, bookData: Partial<Book> & Record<string, unknown>): Promise<AxiosResponse<Book>> =>
-    api.put<Book>(`/books/${id}`, bookData),
+  updateBook: (id: Id, bookData: UpdateBookPayload): Promise<AxiosResponse<Book>> => {
+  const fd = new FormData();
+
+  if (bookData.title) fd.append("title", bookData.title);
+  if (bookData.author) fd.append("author", bookData.author);
+  if (bookData.description) fd.append("description", bookData.description);
+  if (bookData.status) fd.append("status", bookData.status);
+
+  if (bookData.location_ids && bookData.location_ids.length > 0) {
+    for (const id of bookData.location_ids) {
+      fd.append("location_ids", String(id));
+    }
+  }
+
+  if (bookData.tag_ids && bookData.tag_ids.length > 0) {
+    for (const id of bookData.tag_ids) {
+      fd.append("tag_ids", String(id));
+    }
+  }
+
+  if (bookData.cover_image) {
+    fd.append("cover_image", bookData.cover_image);
+  }
+
+  return api.put<Book>(`/books/${id}`, fd, {
+    headers: { "Content-Type": undefined as any },
+  });
+},
 
   deleteBook: (id: Id): Promise<AxiosResponse<void>> => api.delete<void>(`/books/${id}`),
 
   uploadCover: (bookId: Id, coverImage: File | Blob): Promise<AxiosResponse<Book>> => {
     const formData = new FormData();
     formData.append("cover_image", coverImage);
-
     return api.post<Book>(`/books/${bookId}/cover`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
 
+  replaceCover: (bookId: Id, coverImage: File | Blob): Promise<AxiosResponse<{ message: string; cover_url: string; cover_key: string }>> => {
+    const formData = new FormData();
+    formData.append("cover_image", coverImage);
+    return api.put(`/books/${bookId}/cover`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  deleteCover: (bookId: Id): Promise<AxiosResponse<{ message: string }>> =>
+    api.delete(`/books/${bookId}/cover`),
+
+  refreshCoverUrl: (bookId: Id): Promise<AxiosResponse<{ book_id: number; cover_url: string; expires_in: string }>> =>
+    api.get(`/books/${bookId}/cover/refresh`),
+
   getBookLocations: (bookId: Id): Promise<AxiosResponse<Location[]>> =>
     api.get<Location[]>(`/books/${bookId}/locations`),
 
-  // --- Reservations ---
+  getTags: (skip = 0, limit = 100, search?: string): Promise<AxiosResponse<Tag[]>> =>
+    api.get<Tag[]>("/tags/", { params: { skip, limit, search } }),
+
+  getTagsByNames: (names: string[]): Promise<AxiosResponse<Tag[]>> =>
+    api.get<Tag[]>("/tags/by-names/", { params: { names: names.join(',') } }),
+
+  searchTags: (query: string, limit = 10): Promise<AxiosResponse<Tag[]>> =>
+    api.get<Tag[]>("/tags/search/", { params: { query, limit } }),
+
+  getPopularTags: (limit = 20): Promise<AxiosResponse<Tag[]>> =>
+    api.get<Tag[]>("/tags/popular/", { params: { limit } }),
+
+  getTagById: (tagId: number): Promise<AxiosResponse<Tag>> =>
+    api.get<Tag>(`/tags/${tagId}`),
+
+  getTagByName: (name: string): Promise<AxiosResponse<Tag>> =>
+    api.get<Tag>(`/tags/name/${name}`),
+
+  createTag: (tagData: CreateTagPayload): Promise<AxiosResponse<Tag>> =>
+    api.post<Tag>("/tags/", tagData),
+
+  updateTag: (tagId: number, tagData: UpdateTagPayload): Promise<AxiosResponse<Tag>> =>
+  api.put<Tag>(`/tags/${tagId}`, tagData),
+
+  deleteTag: (tagId: number, force = false): Promise<AxiosResponse<void>> =>
+    api.delete<void>(`/tags/${tagId}`, { params: { force } }),
+
+  getTagBooksCount: (tagId: number): Promise<AxiosResponse<{ tag_id: number; tag_name: string; books_count: number }>> =>
+    api.get(`/tags/${tagId}/books/count`),
+
+  createMultipleTags: (tagsData: CreateTagPayload[]): Promise<AxiosResponse<Tag[]>> =>
+    api.post<Tag[]>("/tags/bulk/", tagsData),
+
+  deleteMultipleTags: (tagIds: number[], force = false): Promise<AxiosResponse<{ deleted: any[]; failed: any[]; used_in_books: any[] }>> =>
+    api.delete("/tags/bulk/", { params: { tag_ids: tagIds.join(','), force } }),
+
+  addTagsToBook: (bookId: Id, tagIds: number[]): Promise<AxiosResponse<Book>> =>
+    api.post<Book>(`/books/${bookId}/tags`, { tag_ids: tagIds }),
+
+  removeTagsFromBook: (bookId: Id, tagIds: number[]): Promise<AxiosResponse<Book>> =>
+    api.delete<Book>(`/books/${bookId}/tags`, { data: { tag_ids: tagIds } }),
+
+  getBooksByTags: (tagIds: number[], matchAll = true, skip = 0, limit = 50): Promise<AxiosResponse<Book[]>> =>
+    api.get<Book[]>("/books/by-tags/", { params: { tag_ids: tagIds.join(','), match_all: matchAll, skip, limit } }),
+
   reserveBook: (bookId: Id, days: number): Promise<AxiosResponse<Reservation>> =>
     api.post<Reservation>("/reservations", { book_id: bookId, days }),
 
@@ -272,13 +383,11 @@ export const bookApi = {
 
   closeReservation: (reservationId: Id) => api.post<void>(`/reservations/${reservationId}/close`),
 
-  // --- Auth ---
   login: (username: string, password: string): Promise<AxiosResponse<LoginResponse>> => {
     const formData = new URLSearchParams();
     formData.append("username", username);
     formData.append("password", password);
 
-    // OAuth2PasswordRequestForm не требует grant_type/scope/client_id
     return api.post<LoginResponse>("/auth/login", formData, {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
@@ -296,7 +405,6 @@ export const bookApi = {
 
   getUserById: (id: Id): Promise<AxiosResponse<User>> => api.get<User>(`/users/${id}`),
 
-  // --- Locations ---
   getLocations: (): Promise<AxiosResponse<Location[]>> => api.get<Location[]>("/locations"),
 
   createLocation: (payload: CreateLocationPayload): Promise<AxiosResponse<LocationServer>> =>
@@ -322,7 +430,6 @@ export const bookApi = {
 
   getStatistics: (): Promise<AxiosResponse<Statistics>> => api.get<Statistics>("/statistics"),
 
-  // --- Admin ---
   adminGetUsers: () => api.get("/admin/users"),
   adminSetUserRole: (userId: Id, role: string) => api.put(`/admin/users/${userId}/role`, { role }),
   adminGetBooksForDelete: () => api.get("/admin/books/for-delete"),

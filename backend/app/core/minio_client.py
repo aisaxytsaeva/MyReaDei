@@ -27,13 +27,11 @@ class MinioService:
         self._ensure_bucket_exists()
     
     def _ensure_bucket_exists(self):
-        """Проверить и создать bucket если не существует"""
         try:
             if not self.client.bucket_exists(self.bucket):
                 self.client.make_bucket(self.bucket)
                 logger.info(f"Created bucket: {self.bucket}")
                 
-                # Устанавливаем публичный доступ для чтения
                 policy = {
                     "Version": "2012-10-17",
                     "Statement": [
@@ -55,7 +53,6 @@ class MinioService:
             raise
     
     def _validate_file(self, filename: str, content_type: str, file_size: int):
-        """Валидация файла"""
         ext = filename.split('.')[-1].lower() if '.' in filename else ''
         if ext not in self.allowed_extensions:
             raise HTTPException(
@@ -77,7 +74,6 @@ class MinioService:
             )
     
     def _generate_filename(self, original_filename: str) -> str:
-        """Генерация уникального имени файла"""
         ext = original_filename.split('.')[-1].lower() if '.' in original_filename else 'jpg'
         return f"covers/{uuid.uuid4()}.{ext}"
     
@@ -86,7 +82,6 @@ class MinioService:
         file: UploadFile,
         folder: str = "covers"
     ) -> Dict[str, Any]:
-        """Загрузить файл в MinIO"""
         contents = await file.read()
         file_size = len(contents)
         
@@ -120,24 +115,7 @@ class MinioService:
             )
     
     def get_file_url(self, filename: str, expires: int = 3600) -> str:
-        try:
-            url = self.client.presigned_get_object(
-                bucket_name=self.bucket,
-                object_name=filename,
-                expires=timedelta(seconds=expires)
-            )
-            
-            internal_endpoint = f"http://{settings.MINIO_ENDPOINT}"
-            public_endpoint = settings.MINIO_PUBLIC_URL
-            
-            if public_endpoint and internal_endpoint in url:
-                url = url.replace(internal_endpoint, public_endpoint)
-                logger.debug(f"URL rewritten from {internal_endpoint} to {public_endpoint}")
-            
-            return url
-        except S3Error as e:
-            logger.error(f"Error generating URL: {e}")
-            return ""
+        return f"{settings.MINIO_PUBLIC_URL}/{self.bucket}/{filename}"
     
     def delete_file(self, filename: str):
         try:

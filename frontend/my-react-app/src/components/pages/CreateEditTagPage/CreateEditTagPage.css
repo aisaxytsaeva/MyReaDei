@@ -1,0 +1,229 @@
+html, body, #root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.at-page {
+  min-height: 100vh;
+  width: 100%;
+  background: #f6dfd7;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.at-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+}
+
+.at-content {
+  flex: 1;
+  width: 100%;
+  padding: 40px 20px;
+  display: grid;
+  place-items: start center;
+}
+
+.at-wrapper {
+  width: 100%;
+  max-width: 1200px;
+}
+
+.at-pageHeader {
+  margin-bottom: 18px;
+}
+
+.at-title {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 700;
+  color: #222;
+}
+
+.at-subtitle {
+  margin-top: 6px;
+  color: #666;
+}
+
+.at-form {
+  width: 100%;
+  max-width: 680px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.at-section {
+  margin-bottom: 20px;
+}
+
+.at-sectionTitle {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #222;
+}
+
+.at-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 14px;
+  font-size: 15px;
+  background: #fff;
+  color: #222;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.at-input:focus {
+  border-color: #711720;
+  box-shadow: 0 0 0 3px rgba(113, 23, 32, 0.12);
+}
+
+.at-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 14px;
+  font-size: 15px;
+  background: #fff;
+  color: #222;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.at-textarea:focus {
+  border-color: #711720;
+  box-shadow: 0 0 0 3px rgba(113, 23, 32, 0.12);
+}
+
+.at-error {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: #ffe6e6;
+  border: 1px solid #ffb3b3;
+  color: #8a1f1f;
+  border-radius: 12px;
+}
+
+.at-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.at-btnCancel {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.at-btnCancel:hover {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+}
+
+.at-btnSubmit {
+  background-color: #711720;
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.at-btnSubmit:hover:not(:disabled) {
+  background-color: #8B2C2C;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(113, 23, 32, 0.4);
+}
+
+.at-btnSubmit:disabled,
+.at-btnCancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.at-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px;
+  gap: 20px;
+}
+
+.at-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #711720;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.at-authBox {
+  width: 100%;
+  max-width: 500px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 32px;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.at-authBox h2 {
+  margin: 0 0 12px;
+  font-size: 24px;
+  color: #333;
+}
+
+.at-authBox p {
+  margin: 0;
+  color: #666;
+}
+
+@media (max-width: 768px) {
+  .at-content {
+    padding: 24px 14px;
+  }
+
+  .at-title {
+    font-size: 28px;
+  }
+
+  .at-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .at-btnCancel,
+  .at-btnSubmit {
+    width: 100%;
+  }
+}

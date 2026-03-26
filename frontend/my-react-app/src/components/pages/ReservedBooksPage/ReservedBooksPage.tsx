@@ -59,7 +59,6 @@ const ReservedBooksPage: React.FC = () => {
     } else {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, token]);
 
   const fetchReservations = async (): Promise<void> => {

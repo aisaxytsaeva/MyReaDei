@@ -15,6 +15,8 @@ import AddEditBookPage from "./components/pages/AddEditBookPage/AddEditBookPage"
 import "./App.css";
 import CreateLocationPage from "./components/pages/CreateLocationPage/CreateLocationPage";
 import AdminPage from "./components/pages/AdminPage/AdminPage";
+import CreateEditTagPage from "./components/pages/CreateEditTagPage/CreateEditTagPage";
+import ModeratorPage from "./components/pages/ModeratorPage/ModeratorPage";
 
 const App: React.FC = () => {
   return (
@@ -34,7 +36,9 @@ const App: React.FC = () => {
             <Route path="/add-book" element={<AddEditBookPage />} />
             <Route path="/edit-book/:id" element={<AddEditBookPage />} />
             <Route path="/locations/create" element={<CreateLocationPage/>} />
-            <Route path="/admin" element={<AdminPage/>} />
+            <Route path="/tags/create" element = {<CreateEditTagPage/>} />
+            <Route path="/tags/edit/:id" element={<CreateEditTagPage/>} />            <Route path="/admin" element={<AdminPage/>} />
+            <Route path="/moderator" element={<ModeratorPage />} />
           </Routes>
         </div>
       </Router>

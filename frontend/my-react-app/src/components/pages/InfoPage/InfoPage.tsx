@@ -13,34 +13,9 @@ import {
   type Reservation,
   type Location,
   type User as ApiUser,
+  type Tag,
 } from "../../../lib/api";
-
-type LocationItem =
-  | string
-  | {
-      id?: Id;
-      name?: string;
-      address?: string;
-      description?: string;
-    };
-
-type BookDetails = Book & {
-  title: string;
-  author: string;
-  description: string;
-  cover_image_uri?: string | null;
-  owner_id?: Id | null;
-  status: string;
-  locations: LocationItem[];
-  reader_count: number;
-};
-
-type OwnerInfo = {
-  id: Id | null;
-  name: string;
-  email?: string;
-  isCurrentUser?: boolean;
-};
+import { BookDetails, OwnerInfo, LocationItem } from "./../../../types";
 
 function extractAxiosErrorMessage(err: any): string {
   const detail = err?.response?.data?.detail;
@@ -56,6 +31,24 @@ function extractAxiosErrorMessage(err: any): string {
 
   return err?.message ?? "Ошибка";
 }
+
+// Функция для получения правильного URL изображения
+const getImageUrl = (uri: string | null | undefined): string => {
+  if (!uri) return "/assets/cover.png";
+  
+  // Если URL уже полный (начинается с http:// или https://)
+  if (uri.startsWith('http://') || uri.startsWith('https://')) {
+    return uri;
+  }
+  
+  // Если относительный URL (начинается с /)
+  if (uri.startsWith('/')) {
+    return `http://localhost:8000${uri}`;
+  }
+  
+  // Если что-то другое
+  return uri;
+};
 
 const InfoPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -92,12 +85,10 @@ const InfoPage: React.FC = () => {
 
   useEffect(() => {
     if (id) void fetchBookDetails();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, token]);
 
   const fetchOwnerInfo = async (ownerId: Id): Promise<void> => {
     try {
-      // если владелец — текущий пользователь
       if (userId && String(userId) === String(ownerId)) {
         setOwnerInfo({
           id: ownerId,
@@ -168,8 +159,11 @@ const InfoPage: React.FC = () => {
         owner_id: data.owner_id ?? null,
         status: (data.status || "available") as string,
         locations: (data.locations || []) as LocationItem[],
+        tags: data.tags || [],
         reader_count: data.reader_count || 0,
       };
+
+      console.log("Book cover_image_uri:", formattedBook.cover_image_uri); // 🔍 Логируем
 
       setBook(formattedBook);
 
@@ -193,9 +187,7 @@ const InfoPage: React.FC = () => {
       const locationText =
         typeof location === "string"
           ? location
-          :
-            location.address ||
-            "Место хранения";
+          : location.address || "Место хранения";
 
       const encoded = encodeURIComponent(locationText);
       window.open(
@@ -288,7 +280,6 @@ const InfoPage: React.FC = () => {
         return;
       }
 
-     
       let selectedLocationId: number = 1;
       try {
         const locResp = await bookApi.getBookLocations(book.id);
@@ -297,17 +288,15 @@ const InfoPage: React.FC = () => {
           selectedLocationId = (locs[0] as any).id;
         }
       } catch {
-        
+        // игнорируем
       }
 
-      
       let planned_return_days: "7" | "14" | "30" | "60";
       if (days <= 7) planned_return_days = "7";
       else if (days <= 14) planned_return_days = "14";
       else if (days <= 30) planned_return_days = "30";
       else planned_return_days = "60";
 
-      
       await bookApi.createReservation({
         book_id: Number(book.id),
         planned_return_days,
@@ -322,7 +311,6 @@ const InfoPage: React.FC = () => {
       alert(`Ошибка при бронировании: ${detail}`);
     }
   };
-
 
   if (loading) {
     return (
@@ -382,8 +370,7 @@ const InfoPage: React.FC = () => {
 
   const canMarkDelete = (isAdmin || isModerator) && book.status !== "marked_for_deletion";
   const canUnmarkDelete = isAdmin && book.status === "marked_for_deletion";
-  const canDeleteHard = isAdmin; 
-  console.log("LOCATIONS RAW:", book?.locations);
+  const canDeleteHard = isAdmin;
 
   return (
     <div className="info-page">
@@ -401,18 +388,19 @@ const InfoPage: React.FC = () => {
             <div className="book-cover">
               {book.cover_image_uri ? (
                 <img
-                  src={`http://127.0.0.1:8000${book.cover_image_uri}`}
+                  src={getImageUrl(book.cover_image_uri)}  // Исправлено!
                   alt={book.title}
                   className="book-image"
                   onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                    console.error("Failed to load image:", getImageUrl(book.cover_image_uri));
                     const img = e.currentTarget;
                     img.onerror = null;
                     img.src = "/assets/cover.png";
                     img.onerror = () => {
                       img.style.display = "none";
-                      img.parentElement &&
-                        (img.parentElement.innerHTML =
-                          '<div class="book-placeholder">📚</div>');
+                      if (img.parentElement) {
+                        img.parentElement.innerHTML = '<div class="book-placeholder">📚</div>';
+                      }
                     };
                   }}
                 />
@@ -428,7 +416,6 @@ const InfoPage: React.FC = () => {
                 </Button>
               ) : (
                 <>
-                  {/* Владелец */}
                   {isOwner && (
                     <>
                       <div
@@ -449,7 +436,6 @@ const InfoPage: React.FC = () => {
                         </Button>
                         <Button
                           onClick={async () => {
-                            // владелец может удалять свою книгу как раньше
                             await handleDelete();
                           }}
                           variant="secondary"
@@ -461,7 +447,6 @@ const InfoPage: React.FC = () => {
                     </>
                   )}
 
-                  {/* Обычный пользователь (не владелец, не админ, не модератор) */}
                   {!isOwner && isRegularUser && book.status === "available" && !isReservedByUser && (
                     <Button onClick={handleReserve} className="action-button reserve">
                       Забронировать
@@ -473,7 +458,7 @@ const InfoPage: React.FC = () => {
                       <p style={{ marginBottom: "10px", color: "#28a745" }}>
                         Вы забронировали эту книгу
                       </p>
-                      </div>
+                    </div>
                   )}
 
                   {!isOwner &&
@@ -485,21 +470,18 @@ const InfoPage: React.FC = () => {
                       </p>
                     )}
 
-                  {/* Модератор/админ — пометить на удаление */}
                   {!isOwner && canMarkDelete && (
                     <Button onClick={handleMarkDelete} className="action-button delete">
                       Пометить на удаление
                     </Button>
                   )}
 
-                  {/* Админ — снять пометку */}
                   {!isOwner && canUnmarkDelete && (
                     <Button onClick={handleUnmarkDelete} className="action-button edit">
                       Снять пометку удаления
                     </Button>
                   )}
 
-                  {/* Админ — удалить книгу */}
                   {!isOwner && canDeleteHard && (
                     <Button
                       onClick={handleDelete}
@@ -551,23 +533,61 @@ const InfoPage: React.FC = () => {
                       gap: "5px",
                     }}
                   >
-                    <span>{book.reader_count} читателей</span>
+                    <span>📖 {book.reader_count} читателей</span>
                   </span>
                 )}
               </div>
             </div>
 
+            {book.tags && book.tags.length > 0 && (
+              <div className="info-container">
+                <h3 className="section1-title">Теги</h3>
+                <div className="tags-container" style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                  {book.tags.map((tag) => (
+                    <span
+                      key={tag.id}
+                      className="tag-item"
+                      style={{
+                        backgroundColor: "#e9ecef",
+                        padding: "4px 12px",
+                        borderRadius: "20px",
+                        fontSize: "14px",
+                        color: "#495057",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                      }}
+                      onClick={() => {
+                        navigate(`/catalog?tag=${tag.tag_name}`);
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#dee2e6";
+                        e.currentTarget.style.transform = "scale(1.02)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "#e9ecef";
+                        e.currentTarget.style.transform = "scale(1)";
+                      }}
+                    >
+                      <span>{tag.tag_name}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="info-container">
-              <h3 className="section-title">Описание</h3>
+              <h3 className="section1-title">Описание</h3>
               <p className="book-description">{book.description}</p>
             </div>
 
             <div className="info-container">
-              <h3 className="section-title">Место хранения</h3>
+              <h3 className="section1-title">Место хранения</h3>
               <div className="location-content">
                 {book.locations && book.locations.length > 0 ? (
                   <>
-                  
                     <p className="book-location">
                       {book.locations.map((loc, index) => {
                         const text =
@@ -596,7 +616,7 @@ const InfoPage: React.FC = () => {
             </div>
 
             <div className="info-container">
-              <h3 className="section-title">Владелец книги</h3>
+              <h3 className="section1-title">Владелец книги</h3>
               <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
                 <p className="book-owner" style={{ fontSize: "18px", fontWeight: 500 }}>
                   {ownerInfo.name}

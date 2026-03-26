@@ -16,7 +16,6 @@
   z-index: 3000;
 }
 
-/* контент всегда начинается ниже хедера */
 .adminBody {
   padding-top: var(--header-h);
 }
