@@ -6,7 +6,6 @@ import Header from "../../UI/Header/Header";
 import { useAuth } from "../../../context/AuthContext";
 import "./HomePage.css";
 import { HomeBookCard } from "../../../types";
-import {SeoManager} from "../../SEO/SeoManager";
 import { bookApi, type Id, type Book, type Tag } from "../../../lib/api";
 
 const getDemoBooks = (): HomeBookCard[] => [
@@ -161,12 +160,7 @@ const HomePage: React.FC = () => {
 
   return (
     <>
-      <SeoManager 
-        title="Книжный каталог"
-        description="Обменивайтесь книгами с другими читателями. Тысячи книг в вашем городе. Бесплатное бронирование."
-        canonicalUrl="https://myreadei.com/home"
-        ogType="website"
-      />
+    
     
       <div className="page">
         <Header />

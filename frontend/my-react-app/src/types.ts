@@ -1,4 +1,4 @@
-import { Id, Location, Tag, type Book } from "./lib/api";
+import { Id, Tag, type Book } from "./lib/api";
 
 
 export type ProfileStats = {

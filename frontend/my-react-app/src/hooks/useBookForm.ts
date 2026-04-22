@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { bookApi, type Id } from "./../lib/api";
+import { bookApi} from "./../lib/api";
 import type { FormState, BookForEdit } from "./../types";
 
 export const useBookForm = (isEditMode: boolean, bookId?: string) => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState<FormState>({
     title: "",
     author: "",

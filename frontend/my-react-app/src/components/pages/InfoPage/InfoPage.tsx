@@ -4,7 +4,6 @@ import { useAuth } from "../../../context/AuthContext";
 import BookingMenu from "../../UI/Book/BookingMenu";
 import Button from "../../UI/Button/Button";
 import Header from "../../UI/Header/Header";
-import {SeoManager} from "../../SEO/SeoManager";
 import "./InfoPage.css";
 
 import {
@@ -369,14 +368,6 @@ const InfoPage: React.FC = () => {
 
   return (
     <>
-      <SeoManager 
-        title={book.title}
-        description={book.description?.slice(0, 160)}
-        canonicalUrl={`https://myreadei.com/book/${book.id}`}
-        ogImage={book.cover_image_uri}
-        ogType="book"
-        noIndex={false}  
-      />
       <div className="info-page">
         <BookingMenu
           isOpen={isBookingMenuOpen}

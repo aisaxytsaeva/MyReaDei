@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import Header from "../../UI/Header/Header";
 import Button from "../../UI/Button/Button";
-import { SeoManager } from "../../../components/SEO/SeoManager";
 import { bookApi, type Tag } from "../../../lib/api";
 import "./ModeratorPage.css";
 
@@ -94,12 +93,7 @@ const ModeratorPage: React.FC = () => {
   if (!isModerator) {
     return (
       <>
-        <SeoManager 
-          title="Доступ запрещён"
-          description="У вас нет прав доступа к этой странице"
-          noIndex={true}
-          noFollow={true}
-        />
+        
         <div className="tm-page">
           <Header />
           <div className="tm-content">
@@ -118,12 +112,6 @@ const ModeratorPage: React.FC = () => {
 
   return (
     <>
-      <SeoManager 
-        title="Управление тегами | Панель модератора"
-        description="Управление тегами книг в каталоге MyReaDei"
-        noIndex={true}
-        noFollow={true}
-      />
       
       <div className="tm-page">
         <Header />

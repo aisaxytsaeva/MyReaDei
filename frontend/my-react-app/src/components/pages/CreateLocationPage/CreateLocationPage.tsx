@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../UI/Header/Header";
 import Button from "../../UI/Button/Button";
-import { SeoManager } from "../../../components/SEO/SeoManager";
 import { useAuth } from "../../../context/AuthContext";
 import { bookApi, type CreateLocationPayload } from "../../../lib/api";
 import "./CreateLocationPage.css";
@@ -65,12 +64,7 @@ const CreateLocationPage: React.FC = () => {
 
   return (
     <>
-      <SeoManager 
-        title="Создание локации"
-        description="Добавьте новое место для обмена книгами"
-        noIndex={true}
-        noFollow={true}
-      />
+    
       
       <div className="cl-page">
         <Header />

@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import BookCard from "../../UI/Book/BookCard";
 import SearchBar from "../../UI/Book/SearchBar";
 import Header from "../../UI/Header/Header";
-import { SeoManager } from "../../../components/SEO/SeoManager";
 import { useAuth } from "../../../context/AuthContext";
 import "./FoundPage.css";
 import { CardBook } from "../../../types";
@@ -215,40 +214,9 @@ const FoundPage: React.FC = () => {
   const hasActiveFilters = selectedTagIds.length > 0;
   const hasOriginalResults = originalSearchResults.length > 0;
 
-  // SEO мета-данные
-  const getSeoTitle = () => {
-    if (searchQuery) return `Результаты поиска: ${searchQuery}`;
-    if (hasActiveFilters) return `Книги по тегам | MyReaDei`;
-    return "Каталог книг | MyReaDei";
-  };
-
-  const getSeoDescription = () => {
-    if (searchQuery) {
-      return `Найдено ${books.length} ${getBookWord(books.length)} по запросу "${searchQuery}". Книги для обмена и бронирования.`;
-    }
-    if (hasActiveFilters) {
-      const tagNames = allTags.filter(t => selectedTagIds.includes(t.id)).map(t => t.tag_name).join(', ');
-      return `Книги с тегами: ${tagNames}. ${books.length} ${getBookWord(books.length)} в каталоге.`;
-    }
-    return `Каталог книг MyReaDei. ${books.length} ${getBookWord(books.length)} доступно для бронирования. Обменивайтесь книгами с другими читателями.`;
-  };
-
-  const getCanonicalUrl = () => {
-    const baseUrl = "https://myreadei.com";
-    if (searchQuery) return `${baseUrl}/search?q=${encodeURIComponent(searchQuery)}`;
-    if (hasActiveFilters) return `${baseUrl}/catalog?tags=${selectedTagIds.join(',')}`;
-    return `${baseUrl}/catalog`;
-  };
 
   return (
     <>
-      <SeoManager 
-        title={getSeoTitle()}
-        description={getSeoDescription()}
-        canonicalUrl={getCanonicalUrl()}
-        ogType="website"
-        noIndex={false}
-      />
       
       <div className="page">
         <Header />

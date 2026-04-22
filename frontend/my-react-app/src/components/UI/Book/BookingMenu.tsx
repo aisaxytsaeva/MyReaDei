@@ -4,12 +4,11 @@ import Button from "../Button/Button";
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  /** days */
   onBook: (days: number) => void;
 };
 
 const BookingMenu: React.FC<Props> = ({ isOpen, onClose, onBook }) => {
-  const [selectedPeriod, setSelectedPeriod] = useState<number | null>(null);
+  const [_, setSelectedPeriod] = useState<number | null>(null);
 
   const bookingPeriods: Array<{ days: number; label: string }> = [
     { days: 7, label: "7 дней" },

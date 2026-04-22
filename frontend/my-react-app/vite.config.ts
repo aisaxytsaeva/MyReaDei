@@ -3,15 +3,21 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  server: {
-  host: "127.0.0.1",
-  port: 3000,
-  strictPort: true,
-    proxy: {
-      "/api": {
-        target: "http://127.0.0.1:8000",
-        changeOrigin: true,
-      },
+  base: "./",  // ← используйте относительные пути
+  build: {
+    outDir: "dist",
+    assetsDir: "assets",
+    rollupOptions: {
+      input: "index.html",  // ← явно укажите входную точку
     },
+  },
+  server: {
+    host: "0.0.0.0",
+    port: 3000,
+    strictPort: true,
+  },
+  preview: {
+    host: "0.0.0.0",
+    port: 3000,
   },
 });

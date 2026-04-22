@@ -1,7 +1,6 @@
 import React from "react";
 import Button from "../../UI/Button/Button";
 import Header from "../../UI/Header/Header";
-import { SeoManager } from "../../../components/SEO/SeoManager";
 import "./WelcomePage.css";
 
 const WelcomePage: React.FC = () => {
@@ -11,14 +10,7 @@ const WelcomePage: React.FC = () => {
 
   return (
     <>
-      <SeoManager 
-        title="Буккроссинг платформа | MyReaDei"
-        description="Обменивайтесь книгами с другими читателями. Огромный каталог книг, рейтинги, статистика и общение с единомышленниками."
-        canonicalUrl="https://myreadei.com/"
-        ogImage="/assets/logo.png"
-        ogType="website"
-        noIndex={false}
-      />
+     
       
       <div className="welcome-page-wrapper">
         <Header />

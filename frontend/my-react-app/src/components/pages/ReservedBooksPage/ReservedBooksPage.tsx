@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import Header from "../../UI/Header/Header";
 import BookCard from "../../UI/Book/BookCard";
-import { SeoManager } from "../../../components/SEO/SeoManager";
 import "./ReservedBooksPage.css";
 
 import { bookApi, type Id } from "../../../lib/api";
@@ -151,23 +150,11 @@ const ReservedBooksPage: React.FC = () => {
     void fetchReservations();
   };
 
-  const getSeoTitle = () => {
-    return `Мои бронирования | MyReaDei`;
-  };
-
-  const getSeoDescription = () => {
-    return `Управление вашими бронированиями книг. Активных бронирований: ${reservations.length}`;
-  };
 
   if (!user || !token) {
     return (
       <>
-        <SeoManager 
-          title="Доступ запрещён"
-          description="Для просмотра бронирований необходимо авторизоваться"
-          noIndex={true}
-          noFollow={true}
-        />
+        
         <div className="reserved-books-page">
           <Header />
           <div
@@ -202,12 +189,7 @@ const ReservedBooksPage: React.FC = () => {
   if (loading) {
     return (
       <>
-        <SeoManager 
-          title="Загрузка"
-          description="Загрузка ваших бронирований"
-          noIndex={true}
-          noFollow={true}
-        />
+        
         <div className="reserved-books-page">
           <Header />
           <div
@@ -244,12 +226,7 @@ const ReservedBooksPage: React.FC = () => {
 
   return (
     <>
-      <SeoManager 
-        title={getSeoTitle()}
-        description={getSeoDescription()}
-        noIndex={true}
-        noFollow={true}
-      />
+      
       
       <div className="reserved-books-page">
         <div className="fixed-header">

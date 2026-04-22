@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Header from "../../UI/Header/Header";
 import Button from "../../UI/Button/Button";
-import { SeoManager } from "../../../components/SEO/SeoManager";
 import { useAuth } from "../../../context/AuthContext";
 import { bookApi, type CreateTagPayload, type Tag } from "../../../lib/api";
 import "./CreateEditTagPage.css";
 
 const CreateEditTagPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { id } = useParams<{ id?: string }>();
   const { user, token } = useAuth();
 
@@ -116,28 +114,11 @@ const CreateEditTagPage: React.FC = () => {
     }
   };
 
-  // SEO мета-данные
-  const getSeoTitle = () => {
-    if (isEditMode) return `Редактирование тега: ${tagData?.tag_name || ''}`;
-    return "Создание нового тега";
-  };
-
-  const getSeoDescription = () => {
-    if (isEditMode) {
-      return `Редактирование тега "${tagData?.tag_name}". Управление категориями книг.`;
-    }
-    return "Добавьте новый тег для категоризации книг в каталоге MyReaDei";
-  };
 
   if (loadingData && isEditMode) {
     return (
       <>
-        <SeoManager 
-          title="Загрузка тега"
-          description="Загрузка данных тега..."
-          noIndex={true}
-          noFollow={true}
-        />
+       
         <div className="at-page">
           <Header />
           <div className="at-loading">
@@ -151,12 +132,7 @@ const CreateEditTagPage: React.FC = () => {
 
   return (
     <>
-      <SeoManager 
-        title={getSeoTitle()}
-        description={getSeoDescription()}
-        noIndex={true}
-        noFollow={true}
-      />
+      
       
       <div className="at-page">
         <Header />

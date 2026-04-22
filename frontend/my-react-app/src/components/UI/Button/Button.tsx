@@ -50,7 +50,6 @@ const Button: React.FC<Props> = (props) => {
 
   const classes = `${styles.button} ${styles[variant]} ${styles[size]} ${className}`;
 
-  // router link
   if ("to" in props && props.to) {
     return (
       <Link

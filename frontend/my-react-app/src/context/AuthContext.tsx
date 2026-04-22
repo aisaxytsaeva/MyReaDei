@@ -112,7 +112,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loadProfile = async (authToken: string): Promise<void> => {
     try {
       // Временно сохраняем токен для запроса
-      const originalToken = localStorage.getItem(TOKEN_KEY);
       localStorage.setItem(TOKEN_KEY, authToken);
       
       // Обновляем заголовок axios через интерсептор (он сам возьмет из localStorage)

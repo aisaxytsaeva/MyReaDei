@@ -1,11 +1,9 @@
-// src/components/pages/ProfilePage/ProfilePage.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import Header from "../../UI/Header/Header";
 import Button from "../../UI/Button/Button";
 import BookCard from "../../UI/Book/BookCard";
-import { SeoManager } from "../../../components/SEO/SeoManager";
 import "./ProfilePage.css";
 import { ProfileStats, BookCardItem, ReservationCardItem } from "../../../types";
 import { bookApi, type Id, type User } from "../../../lib/api";
@@ -90,25 +88,11 @@ const ProfilePage: React.FC = () => {
     navigate("/reservations");
   };
 
-  // SEO мета-данные
-  const getSeoTitle = () => {
-    const username = (user as any)?.name || (user as any)?.username || "Пользователь";
-    return `Профиль: ${username} | MyReaDei`;
-  };
-
-  const getSeoDescription = () => {
-    return `Профиль пользователя. Добавлено книг: ${userProfile?.book_added || 0}, прочитано книг: ${userProfile?.book_borrowed || 0}`;
-  };
 
   if (!user || !token) {
     return (
       <>
-        <SeoManager 
-          title="Доступ запрещён"
-          description="Для просмотра профиля необходимо авторизоваться"
-          noIndex={true}
-          noFollow={true}
-        />
+        
         <div>
           <Header />
           <div className="profile-unauthorized-container">
@@ -122,12 +106,7 @@ const ProfilePage: React.FC = () => {
   if (loading) {
     return (
       <>
-        <SeoManager 
-          title="Загрузка профиля"
-          description="Загрузка данных профиля"
-          noIndex={true}
-          noFollow={true}
-        />
+       
         <div className="profile-container">
           <Header />
           <div
@@ -164,12 +143,6 @@ const ProfilePage: React.FC = () => {
 
   return (
     <>
-      <SeoManager 
-        title={getSeoTitle()}
-        description={getSeoDescription()}
-        noIndex={true}
-        noFollow={true}
-      />
       
       <div className="profile-container">
         <Header />

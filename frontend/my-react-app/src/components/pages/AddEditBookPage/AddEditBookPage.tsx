@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import Header from "../../UI/Header/Header";
 import Button from "../../UI/Button/Button";
-import { SeoManager } from "../../../components/SEO/SeoManager";
 import { ExternalBookSearch } from "../../../components/AddEditBookComponents/ExternalBookSearch";
 import "./AddEditBookPage.css";
 
@@ -61,20 +60,6 @@ const AddEditBookPage: React.FC = () => {
     }
   };
 
-  const getSeoTitle = () => {
-    if (isEditMode) {
-      return `Редактирование книги: ${bookData?.title || ''} | MyReaDei`;
-    }
-    return "Добавление новой книги | MyReaDei";
-  };
-
-  const getSeoDescription = () => {
-    if (isEditMode) {
-      return `Редактирование книги "${bookData?.title || ''}". Обновите информацию о книге.`;
-    }
-    return "Добавьте новую книгу в каталог MyReaDei. Поделитесь своей книгой с другими читателями.";
-  };
-
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -105,151 +90,117 @@ const AddEditBookPage: React.FC = () => {
 
   if (!user || !token) {
     return (
-      <>
-        <SeoManager 
-          title="Доступ запрещён"
-          description="Для добавления книги необходимо авторизоваться"
-          noIndex={true}
-          noFollow={true}
-        />
-        <div className="add-edit-book-page">
-          <Header />
-          <div style={{ textAlign: "center", padding: "100px 20px", color: "#666" }}>
-            <h2>Пожалуйста, войдите в систему</h2>
-            <p>Для добавления или редактирования книги требуется авторизация</p>
-            <Button onClick={() => navigate("/auth")} style={{ marginTop: "20px" }}>
-              Войти
-            </Button>
-          </div>
+      <div className="add-edit-book-page">
+        <Header />
+        <div style={{ textAlign: "center", padding: "100px 20px", color: "#666" }}>
+          <h2>Пожалуйста, войдите в систему</h2>
+          <p>Для добавления или редактирования книги требуется авторизация</p>
+          <Button onClick={() => navigate("/auth")} style={{ marginTop: "20px" }}>
+            Войти
+          </Button>
         </div>
-      </>
+      </div>
     );
   }
 
   if (loading && isEditMode) {
     return (
-      <>
-        <SeoManager 
-          title="Загрузка книги"
-          description="Загрузка данных книги для редактирования"
-          noIndex={true}
-          noFollow={true}
-        />
-        <div className="add-edit-book-page">
-          <Header />
-          <LoadingState message="Загрузка данных книги..." />
-        </div>
-      </>
+      <div className="add-edit-book-page">
+        <Header />
+        <LoadingState message="Загрузка данных книги..." />
+      </div>
     );
   }
 
   if (error && isEditMode) {
     return (
-      <>
-        <SeoManager 
-          title="Ошибка загрузки"
-          description="Не удалось загрузить данные книги"
-          noIndex={true}
-          noFollow={true}
-        />
-        <div className="add-edit-book-page">
-          <Header />
-          <div style={{ textAlign: "center", padding: "100px 20px", color: "#721c24" }}>
-            <h2>Ошибка</h2>
-            <p>{error}</p>
-            <Button onClick={() => navigate("/mybooks")} style={{ marginTop: "20px" }}>
-              Вернуться к моим книгам
-            </Button>
-          </div>
+      <div className="add-edit-book-page">
+        <Header />
+        <div style={{ textAlign: "center", padding: "100px 20px", color: "#721c24" }}>
+          <h2>Ошибка</h2>
+          <p>{error}</p>
+          <Button onClick={() => navigate("/mybooks")} style={{ marginTop: "20px" }}>
+            Вернуться к моим книгам
+          </Button>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
-      <SeoManager 
-        title={getSeoTitle()}
-        description={getSeoDescription()}
-        noIndex={true}
-        noFollow={true}
-      />
-      
-      <div className="add-edit-book-page">
-        <div className="fixed-header">
-          <Header />
-        </div>
+    <div className="add-edit-book-page">
+      <div className="fixed-header">
+        <Header />
+      </div>
 
-        <div className="main-content">
-          <div className="content">
-            <div className="page-header">
-              <h1 className="page-title">{isEditMode ? "Редактировать книгу" : "Добавить книгу"}</h1>
-              <div className="page-subtitle">
-                {isEditMode ? "Обновите информацию о вашей книге" : "Откройте вашу книгу для других!"}
+      <div className="main-content">
+        <div className="content">
+          <div className="page-header">
+            <h1 className="page-title">{isEditMode ? "Редактировать книгу" : "Добавить книгу"}</h1>
+            <div className="page-subtitle">
+              {isEditMode ? "Обновите информацию о вашей книге" : "Откройте вашу книгу для других!"}
+            </div>
+          </div>
+
+          {!isEditMode && (
+            <div className="external-search-section">
+              <ExternalBookSearch 
+                onSelect={handleExternalBookSelect} 
+                loading={loading}
+              />
+            </div>
+          )}
+
+          <form onSubmit={onSubmit} className="book-form">
+            <div className="form-grid">
+              <div className="form-left-column">
+                <BookImageUpload
+                  preview={formData.coverPreview}
+                  onFileChange={handleCoverChange}
+                  loading={loading}
+                  hasExistingCover={!!bookData?.cover_image_uri}
+                  existingCoverUrl={bookData?.cover_image_uri || null}  
+                />
+              </div>
+
+              <div className="form-right-column">
+                <BookFormFields
+                  title={formData.title}
+                  author={formData.author}
+                  description={formData.description}
+                  onInputChange={handleInputChange}
+                  loading={loading}
+                />
+
+                <TagsSelector
+                  tags={tags}
+                  selectedIds={formData.tag_ids}
+                  onChange={handleTagChange}
+                  loading={loading}
+                  loadingTags={loadingTags}
+                />
+
+                <LocationsSelector
+                  locations={locations}
+                  selectedIds={formData.location_ids}
+                  onChange={handleLocationChange}
+                  loading={loading}
+                  loadingLocations={loadingLocations}
+                />
               </div>
             </div>
 
-            {/* Компонент поиска внешних книг */}
-            {!isEditMode && (
-              <div className="external-search-section">
-                <ExternalBookSearch 
-                  onSelect={handleExternalBookSelect} 
-                  loading={loading}
-                />
+            {error && (
+              <div className="error-message">
+                <p>{error}</p>
               </div>
             )}
 
-            <form onSubmit={onSubmit} className="book-form">
-              <div className="form-grid">
-                <div className="form-left-column">
-                  <BookImageUpload
-                    preview={formData.coverPreview}
-                    onFileChange={handleCoverChange}
-                    loading={loading}
-                    hasExistingCover={!!bookData?.cover_image_uri}
-                    existingCoverUrl={bookData?.cover_image_uri || null}  
-                  />
-                </div>
-
-                <div className="form-right-column">
-                  <BookFormFields
-                    title={formData.title}
-                    author={formData.author}
-                    description={formData.description}
-                    onInputChange={handleInputChange}
-                    loading={loading}
-                  />
-
-                  <TagsSelector
-                    tags={tags}
-                    selectedIds={formData.tag_ids}
-                    onChange={handleTagChange}
-                    loading={loading}
-                    loadingTags={loadingTags}
-                  />
-
-                  <LocationsSelector
-                    locations={locations}
-                    selectedIds={formData.location_ids}
-                    onChange={handleLocationChange}
-                    loading={loading}
-                    loadingLocations={loadingLocations}
-                  />
-                </div>
-              </div>
-
-              {error && (
-                <div className="error-message">
-                  <p>{error}</p>
-                </div>
-              )}
-
-              <FormActions isEditMode={isEditMode} loading={loading} onCancel={handleCancel} />
-            </form>
-          </div>
+            <FormActions isEditMode={isEditMode} loading={loading} onCancel={handleCancel} />
+          </form>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

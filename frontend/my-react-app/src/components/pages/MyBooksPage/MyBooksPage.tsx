@@ -6,7 +6,6 @@ import Button from "../../UI/Button/Button";
 import BookCard from "../../UI/Book/BookCard";
 import DeleteBookModal from "../../UI/Book/DeleteBookModal";
 import ConfirmReservationModal from "../../UI/Book/ConfirmReservationModal"
-import { SeoManager } from "../../../components/SEO/SeoManager";
 import "./MyBooksPage.css";
 
 import { bookApi, type Id } from "../../../lib/api";
@@ -249,24 +248,11 @@ const MyBooksPage: React.FC = () => {
     return "дней";
   };
 
-  // SEO мета-данные
-  const getSeoTitle = () => {
-    return `Мои книги | MyReaDei`;
-  };
-
-  const getSeoDescription = () => {
-    return `Управление вашими книгами: ${books.length} ${books.length === 1 ? 'книга' : (books.length >= 2 && books.length <= 4 ? 'книги' : 'книг')} в каталоге.`;
-  };
 
   if (!user || !token) {
     return (
       <>
-        <SeoManager 
-          title="Доступ запрещён"
-          description="Для просмотра моих книг необходимо авторизоваться"
-          noIndex={true}
-          noFollow={true}
-        />
+        
         <div className="my-books-page">
           <Header />
           <div
@@ -289,12 +275,7 @@ const MyBooksPage: React.FC = () => {
   if (loading) {
     return (
       <>
-        <SeoManager 
-          title="Загрузка"
-          description="Загрузка ваших книг"
-          noIndex={true}
-          noFollow={true}
-        />
+        
         <div className="my-books-page">
           <Header />
           <div
@@ -331,12 +312,7 @@ const MyBooksPage: React.FC = () => {
 
   return (
     <>
-      <SeoManager 
-        title={getSeoTitle()}
-        description={getSeoDescription()}
-        noIndex={true}
-        noFollow={true}
-      />
+      
       
       <div className="my-books-page">
         <div className="fixed-header">

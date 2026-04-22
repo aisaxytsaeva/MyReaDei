@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../UI/Button/Button";
 import Header from "../../UI/Header/Header";
-import { SeoManager } from "../../../components/SEO/SeoManager";
 import "./RegistrationPage.css";
 import { bookApi } from "../../../lib/api";
 
@@ -110,12 +109,6 @@ const RegistrationPage: React.FC = () => {
 
   return (
     <>
-      <SeoManager 
-        title="Регистрация"
-        description="Создайте новый аккаунт в MyReaDei для обмена книгами"
-        noIndex={true}
-        noFollow={true}
-      />
       
       <div className="registration-page">
         <Header />

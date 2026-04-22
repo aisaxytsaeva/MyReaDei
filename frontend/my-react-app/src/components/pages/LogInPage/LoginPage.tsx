@@ -3,31 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import Button from "../../UI/Button/Button";
 import Header from "../../UI/Header/Header";
-import { SeoManager } from "../../../components/SEO/SeoManager";
 import "./LogInPage.css";
-
-
-type JwtPayload = {
-  user_id?: number | string;
-  sub?: number | string;
-  role?: string;
-  [key: string]: unknown;
-};
-
-const decodeJwtPayload = (token: string): JwtPayload | null => {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-
-    const payloadJson = atob(padded);
-    return JSON.parse(payloadJson) as JwtPayload;
-  } catch {
-    return null;
-  }
-};
 
 const LoginPage: React.FC = () => {
   const [login, setLogin] = useState<string>("");
@@ -66,12 +42,6 @@ const LoginPage: React.FC = () => {
 
   return (
     <>
-      <SeoManager 
-        title="Вход в аккаунт"
-        description="Войдите в свой аккаунт MyReaDei для управления книгами и бронированиями"
-        noIndex={true}
-        noFollow={true}
-      />
       
       <div className="login-page">
         <Header />
