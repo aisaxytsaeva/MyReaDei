@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import Header from "../../UI/Header/Header";
 import Button from "../../UI/Button/Button";
+import { SeoManager } from "../../../components/SEO/SeoManager";
 import { bookApi, type Tag } from "../../../lib/api";
 import "./ModeratorPage.css";
 
@@ -33,13 +34,10 @@ const ModeratorPage: React.FC = () => {
     void fetchTags();
   }, [user, token]);
 
-  // Проверяем, вернулись ли мы со страницы редактирования
   useEffect(() => {
     const state = location.state as { fromEdit?: boolean };
     if (state?.fromEdit) {
-      // Если вернулись с редактирования, обновляем список
       void fetchTags();
-      // Очищаем состояние
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location]);
@@ -75,7 +73,7 @@ const ModeratorPage: React.FC = () => {
       setDeletingId(tagId);
       await bookApi.deleteTag(tagId);
       alert("Тег успешно удалён!");
-      await fetchTags(); // Обновляем список после удаления
+      await fetchTags();
     } catch (err: any) {
       const detail = err?.response?.data?.detail ?? err?.message ?? "Ошибка удаления";
       const msg = typeof detail === "object" ? JSON.stringify(detail) : String(detail);
@@ -95,141 +93,158 @@ const ModeratorPage: React.FC = () => {
 
   if (!isModerator) {
     return (
-      <div className="tm-page">
-        <Header />
-        <div className="tm-content">
-          <div className="tm-error">
-            <h2>Доступ запрещён</h2>
-            <p>{error || "У вас нет прав доступа к этой странице"}</p>
-            <Button onClick={() => navigate("/home")} className="tm-back-btn">
-              Вернуться на главную
-            </Button>
+      <>
+        <SeoManager 
+          title="Доступ запрещён"
+          description="У вас нет прав доступа к этой странице"
+          noIndex={true}
+          noFollow={true}
+        />
+        <div className="tm-page">
+          <Header />
+          <div className="tm-content">
+            <div className="tm-error">
+              <h2>Доступ запрещён</h2>
+              <p>{error || "У вас нет прав доступа к этой странице"}</p>
+              <Button onClick={() => navigate("/home")} className="tm-back-btn">
+                Вернуться на главную
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="tm-page">
-      <Header />
+    <>
+      <SeoManager 
+        title="Управление тегами | Панель модератора"
+        description="Управление тегами книг в каталоге MyReaDei"
+        noIndex={true}
+        noFollow={true}
+      />
       
-      <div className="tm-content">
-        <div className="tm-container">
-          <div className="tm-header">
-            <div className="tm-header-left">
-              <button onClick={handleGoBack} className="tm-back-button" aria-label="Назад">
-                ← Назад
-              </button>
-              <h1 className="tm-title">Управление тегами</h1>
+      <div className="tm-page">
+        <Header />
+        
+        <div className="tm-content">
+          <div className="tm-container">
+            <div className="tm-header">
+              <div className="tm-header-left">
+                <button onClick={handleGoBack} className="tm-back-button" aria-label="Назад">
+                  ← Назад
+                </button>
+                <h1 className="tm-title">Управление тегами</h1>
+              </div>
+              <div className="tm-stats">
+                <span className="tm-stats-count">Всего тегов: {tags.length}</span>
+              </div>
             </div>
-            <div className="tm-stats">
-              <span className="tm-stats-count">Всего тегов: {tags.length}</span>
-            </div>
-          </div>
 
-          <div className="tm-description">
-            <p>Здесь вы можете создавать, редактировать и удалять теги для книг.</p>
-          </div>
+            <div className="tm-description">
+              <p>Здесь вы можете создавать, редактировать и удалять теги для книг.</p>
+            </div>
 
-          {error && (
-            <div className="tm-error-message">
-              <p>{error}</p>
-              <button onClick={fetchTags} className="tm-retry-btn">Повторить</button>
-            </div>
-          )}
+            {error && (
+              <div className="tm-error-message">
+                <p>{error}</p>
+                <button onClick={fetchTags} className="tm-retry-btn">Повторить</button>
+              </div>
+            )}
 
-          {loading ? (
-            <div className="tm-loading">
-              <div className="tm-spinner"></div>
-              <p>Загрузка тегов...</p>
-            </div>
-          ) : tags.length === 0 ? (
-            <div className="tm-empty">
-              <h3>Нет тегов</h3>
-              <p>Создайте первый тег, чтобы начать категоризацию книг</p>
-              <button onClick={handleCreateTag} className="tm-empty-create-btn">
-                + Создать тег
-              </button>
-            </div>
-          ) : (
-            <div className="tm-tags-grid">
-              {tags.map((tag) => (
-                <div key={tag.id} className="tm-tag-card">
-                  <div className="tm-tag-content">
-                    <div className="tm-tag-info">
-                      <h3 className="tm-tag-name">{tag.tag_name}</h3>
-                      {tag.description && (
-                        <p className="tm-tag-description">{tag.description}</p>
-                      )}
-                    </div>
-                    <div className="tm-tag-actions">
-                      <button
-                        onClick={() => handleEditTag(tag.id)}
-                        className="tm-edit-btn"
-                        aria-label="Редактировать"
-                        disabled={deletingId === tag.id}
-                      >
-                        <img
-                          src="/assets/edit.svg"
-                          alt="Редактировать"
-                          className="delete-icon"
-                          onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-                            const img = e.currentTarget;
-                            img.onerror = null;
-                            img.style.display = "none";
-                            if (img.parentElement) img.parentElement.innerHTML = "✏️";
-                          }}
-                        />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTag(tag.id, tag.tag_name)}
-                        className="tm-delete-btn"
-                        aria-label="Удалить"
-                        disabled={deletingId === tag.id}
-                      >
-                        {deletingId === tag.id ? "Удаление..." : 
+            {loading ? (
+              <div className="tm-loading">
+                <div className="tm-spinner"></div>
+                <p>Загрузка тегов...</p>
+              </div>
+            ) : tags.length === 0 ? (
+              <div className="tm-empty">
+                <h3>Нет тегов</h3>
+                <p>Создайте первый тег, чтобы начать категоризацию книг</p>
+                <button onClick={handleCreateTag} className="tm-empty-create-btn">
+                  + Создать тег
+                </button>
+              </div>
+            ) : (
+              <div className="tm-tags-grid">
+                {tags.map((tag) => (
+                  <div key={tag.id} className="tm-tag-card">
+                    <div className="tm-tag-content">
+                      <div className="tm-tag-info">
+                        <h3 className="tm-tag-name">{tag.tag_name}</h3>
+                        {tag.description && (
+                          <p className="tm-tag-description">{tag.description}</p>
+                        )}
+                      </div>
+                      <div className="tm-tag-actions">
+                        <button
+                          onClick={() => handleEditTag(tag.id)}
+                          className="tm-edit-btn"
+                          aria-label="Редактировать"
+                          disabled={deletingId === tag.id}
+                        >
                           <img
-                            src="/assets/delete_icon.svg"
-                            alt="Удалить"
+                            src="/assets/edit.svg"
+                            alt="Редактировать"
                             className="delete-icon"
                             onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
                               const img = e.currentTarget;
                               img.onerror = null;
                               img.style.display = "none";
-                              if (img.parentElement) img.parentElement.innerHTML = "🗑️";
+                              if (img.parentElement) img.parentElement.innerHTML = "✏️";
                             }}
                           />
-                        }
-                      </button>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTag(tag.id, tag.tag_name)}
+                          className="tm-delete-btn"
+                          aria-label="Удалить"
+                          disabled={deletingId === tag.id}
+                        >
+                          {deletingId === tag.id ? "Удаление..." : 
+                            <img
+                              src="/assets/delete_icon.svg"
+                              alt="Удалить"
+                              className="delete-icon"
+                              onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                                const img = e.currentTarget;
+                                img.onerror = null;
+                                img.style.display = "none";
+                                if (img.parentElement) img.parentElement.innerHTML = "🗑️";
+                              }}
+                            />
+                          }
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      <button
-        onClick={handleCreateTag}
-        className="tm-add-button"
-        aria-label="Создать тег"
-        type="button"
-      >
-        <img
-          src="/assets/plus_icon.svg"
-          alt="Создать тег"
-          className="tm-plus-icon"
-          onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-            const img = e.currentTarget;
-            img.onerror = null;
-            img.style.display = "none";
-            if (img.parentElement) img.parentElement.innerHTML = "+";
-          }}
-        />
-      </button>
-    </div>
+        <button
+          onClick={handleCreateTag}
+          className="tm-add-button"
+          aria-label="Создать тег"
+          type="button"
+        >
+          <img
+            src="/assets/plus_icon.svg"
+            alt="Создать тег"
+            className="tm-plus-icon"
+            onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+              const img = e.currentTarget;
+              img.onerror = null;
+              img.style.display = "none";
+              if (img.parentElement) img.parentElement.innerHTML = "+";
+            }}
+          />
+        </button>
+      </div>
+    </>
   );
 };
 

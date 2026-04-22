@@ -1,4 +1,3 @@
-// src/components/pages/MyBooksPage/MyBooksPage.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
@@ -6,6 +5,8 @@ import Header from "../../UI/Header/Header";
 import Button from "../../UI/Button/Button";
 import BookCard from "../../UI/Book/BookCard";
 import DeleteBookModal from "../../UI/Book/DeleteBookModal";
+import ConfirmReservationModal from "../../UI/Book/ConfirmReservationModal"
+import { SeoManager } from "../../../components/SEO/SeoManager";
 import "./MyBooksPage.css";
 
 import { bookApi, type Id } from "../../../lib/api";
@@ -15,9 +16,10 @@ type MyBookItem = {
   title: string;
   author: string;
   cover_image_uri?: string | null;
-
-  reservationStatus: "available" | "reserved";
+  
+  reservationStatus: "available" | "reserved" | "pending_confirmation";
   reservedBy: string;
+  reservationId?: number;
   daysLeft?: number | null;
 };
 
@@ -26,7 +28,12 @@ const MyBooksPage: React.FC = () => {
   const { user, token } = useAuth();
 
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [selectedBook, setSelectedBook] = useState<MyBookItem | null>(null);
+  const [pendingReservation, setPendingReservation] = useState<{
+    reservationId: number;
+    readerName: string;
+  } | null>(null);
   const [books, setBooks] = useState<MyBookItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -45,7 +52,6 @@ const MyBooksPage: React.FC = () => {
       setError("");
 
       const response = await bookApi.getMyUserBooks();
-
       const data = response.data as Array<{
         id: Id;
         title?: string;
@@ -62,6 +68,7 @@ const MyBooksPage: React.FC = () => {
             cover_image_uri: b.cover_image_uri ?? null,
             reservationStatus: "available",
             reservedBy: "",
+            reservationId: undefined,
             daysLeft: null,
           };
 
@@ -73,27 +80,46 @@ const MyBooksPage: React.FC = () => {
               ? (bookDetails.reservations as any[])
               : [];
 
-            const activeReservation = reservations.find(
-              (r) => r?.status === "active" || r?.status === "pending"
+            // Сначала проверяем pending (ожидает подтверждения)
+            const pendingReservation = reservations.find(
+              (r) => r?.status === "pending"
             );
 
-            if (!activeReservation) return base;
-
-            let daysLeft: number | null = null;
-            if (activeReservation?.end_date) {
-              const endDate = new Date(activeReservation.end_date);
-              const today = new Date();
-              const diffMs = endDate.getTime() - today.getTime();
-              const calc = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-              daysLeft = calc > 0 ? calc : 0;
+            if (pendingReservation) {
+              return {
+                ...base,
+                reservationStatus: "pending_confirmation",
+                reservedBy: pendingReservation.reader_username || "Читатель",
+                reservationId: pendingReservation.id,
+                daysLeft: null,
+              };
             }
 
-            return {
-              ...base,
-              reservationStatus: "reserved",
-              reservedBy: activeReservation.reader_username || "Читатель",
-              daysLeft,
-            };
+            // Затем проверяем active (подтверждено)
+            const activeReservation = reservations.find(
+              (r) => r?.status === "active" || r?.status === "handed_over"
+            );
+
+            if (activeReservation) {
+              let daysLeft: number | null = null;
+              if (activeReservation?.end_date) {
+                const endDate = new Date(activeReservation.end_date);
+                const today = new Date();
+                const diffMs = endDate.getTime() - today.getTime();
+                const calc = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+                daysLeft = calc > 0 ? calc : 0;
+              }
+
+              return {
+                ...base,
+                reservationStatus: "reserved",
+                reservedBy: activeReservation.reader_username || "Читатель",
+                reservationId: activeReservation.id,
+                daysLeft,
+              };
+            }
+
+            return base;
           } catch (err) {
             console.error(`Ошибка загрузки книги ${b.id}:`, err);
             return base;
@@ -107,6 +133,59 @@ const MyBooksPage: React.FC = () => {
       setError("Не удалось загрузить ваши книги");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Подтверждение бронирования
+  const handleConfirmReservation = async (book: MyBookItem): Promise<void> => {
+    if (!book.reservationId) {
+      alert("Ошибка: ID бронирования не найден");
+      return;
+    }
+
+    setPendingReservation({
+      reservationId: book.reservationId,
+      readerName: book.reservedBy,
+    });
+    setSelectedBook(book);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmBooking = async (): Promise<void> => {
+    if (!pendingReservation) return;
+
+    try {
+      await bookApi.confirmReservation(pendingReservation.reservationId);
+      alert(`Бронирование подтверждено! Читатель ${pendingReservation.readerName} получит книгу.`);
+      await fetchMyBooks(); // Обновляем список
+    } catch (err) {
+      console.error("Ошибка подтверждения:", err);
+      alert("Ошибка при подтверждении бронирования");
+    } finally {
+      setShowConfirmModal(false);
+      setPendingReservation(null);
+      setSelectedBook(null);
+    }
+  };
+
+  // Отклонение бронирования
+  const handleRejectReservation = async (book: MyBookItem): Promise<void> => {
+    if (!book.reservationId) {
+      alert("Ошибка: ID бронирования не найден");
+      return;
+    }
+
+    if (!window.confirm(`Вы уверены, что хотите отклонить бронирование от ${book.reservedBy}?`)) {
+      return;
+    }
+
+    try {
+      await bookApi.cancelReservation(book.reservationId);
+      alert("Бронирование отклонено");
+      await fetchMyBooks(); // Обновляем список
+    } catch (err) {
+      console.error("Ошибка отклонения:", err);
+      alert("Ошибка при отклонении бронирования");
     }
   };
 
@@ -133,7 +212,9 @@ const MyBooksPage: React.FC = () => {
 
   const closeModal = (): void => {
     setShowDeleteModal(false);
+    setShowConfirmModal(false);
     setSelectedBook(null);
+    setPendingReservation(null);
   };
 
   const handleConfirmDelete = async (): Promise<void> => {
@@ -168,192 +249,264 @@ const MyBooksPage: React.FC = () => {
     return "дней";
   };
 
+  // SEO мета-данные
+  const getSeoTitle = () => {
+    return `Мои книги | MyReaDei`;
+  };
+
+  const getSeoDescription = () => {
+    return `Управление вашими книгами: ${books.length} ${books.length === 1 ? 'книга' : (books.length >= 2 && books.length <= 4 ? 'книги' : 'книг')} в каталоге.`;
+  };
+
   if (!user || !token) {
     return (
-      <div className="my-books-page">
-        <Header />
-        <div
-          style={{
-            textAlign: "center",
-            padding: "100px 20px",
-            color: "#666",
-          }}
-        >
-          <h2>Пожалуйста, войдите в систему</h2>
-          <Button to="/auth" style={{ marginTop: "20px" }}>
-            Войти
-          </Button>
+      <>
+        <SeoManager 
+          title="Доступ запрещён"
+          description="Для просмотра моих книг необходимо авторизоваться"
+          noIndex={true}
+          noFollow={true}
+        />
+        <div className="my-books-page">
+          <Header />
+          <div
+            style={{
+              textAlign: "center",
+              padding: "100px 20px",
+              color: "#666",
+            }}
+          >
+            <h2>Пожалуйста, войдите в систему</h2>
+            <Button to="/auth" style={{ marginTop: "20px" }}>
+              Войти
+            </Button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (loading) {
     return (
-      <div className="my-books-page">
-        <Header />
-        <div
-          style={{
-            textAlign: "center",
-            padding: "100px 20px",
-            color: "#666",
-          }}
-        >
+      <>
+        <SeoManager 
+          title="Загрузка"
+          description="Загрузка ваших книг"
+          noIndex={true}
+          noFollow={true}
+        />
+        <div className="my-books-page">
+          <Header />
           <div
             style={{
-              display: "inline-block",
-              width: "40px",
-              height: "40px",
-              border: "4px solid #f3f3f3",
-              borderTop: "4px solid #3498db",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite",
-              marginBottom: "20px",
+              textAlign: "center",
+              padding: "100px 20px",
+              color: "#666",
             }}
-          />
-          <style>{`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}</style>
-          <p>Загрузка ваших книг...</p>
+          >
+            <div
+              style={{
+                display: "inline-block",
+                width: "40px",
+                height: "40px",
+                border: "4px solid #f3f3f3",
+                borderTop: "4px solid #3498db",
+                borderRadius: "50%",
+                animation: "spin 1s linear infinite",
+                marginBottom: "20px",
+              }}
+            />
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+            <p>Загрузка ваших книг...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="my-books-page">
-      <div className="fixed-header">
-        <Header />
-      </div>
-
-      {error && (
-        <div
-          style={{
-            margin: "20px auto",
-            maxWidth: "800px",
-            padding: "15px",
-            backgroundColor: "#f8d7da",
-            color: "#721c24",
-            borderRadius: "5px",
-            textAlign: "center",
-          }}
-        >
-          {error}
+    <>
+      <SeoManager 
+        title={getSeoTitle()}
+        description={getSeoDescription()}
+        noIndex={true}
+        noFollow={true}
+      />
+      
+      <div className="my-books-page">
+        <div className="fixed-header">
+          <Header />
         </div>
-      )}
 
-      <div className="main-content">
-        <div className="mcontent-wrapper">
-          <div className="my-books-header">
-            <h1 className="page-title">Мои книги</h1>
-          </div>
-
-          <div className="books-list">
-            {books.length === 0 ? (
-              <div
-                style={{
-                  textAlign: "center",
-                  padding: "50px 20px",
-                  color: "#666",
-                  gridColumn: "1 / -1",
-                }}
-              >
-                <p style={{ fontSize: "18px", marginBottom: "20px" }}>
-                  У вас пока нет добавленных книг
-                </p>
-                <Button onClick={handleAddBook}>Добавить первую книгу</Button>
-              </div>
-            ) : (
-              books.map((book) => (
-                <div key={String(book.id)} className="book-item">
-                  <div className="book-info-section">
-                    <BookCard book={book} />
-
-                    {book.reservationStatus === "reserved" && (
-                      <div className="reservation-details">
-                        <div className="reservation-info">
-                          Читает{" "}
-                          <span className="reader-name">{book.reservedBy}</span>
-                        </div>
-
-                        {typeof book.daysLeft === "number" && book.daysLeft >= 0 && (
-                          <div className="days-left-info">
-                            До конца бронирования:{" "}
-                            <span
-                              className={`days-count ${
-                                book.daysLeft <= 3 ? "warning" : ""
-                              }`}
-                            >
-                              {book.daysLeft} {getDaysText(book.daysLeft)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => void handleDeleteClick(book)}
-                    className={`delete-button ${
-                      book.reservationStatus === "reserved" ? "reserved" : ""
-                    }`}
-                    aria-label="Удалить книгу"
-                    title={
-                      book.reservationStatus === "reserved"
-                        ? "Книга забронирована, удаление невозможно"
-                        : "Удалить книгу"
-                    }
-                    type="button"
-                  >
-                    <img
-                      src="/assets/delete_icon.svg"
-                      alt="Удалить"
-                      className="delete-icon"
-                      onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-                        const img = e.currentTarget;
-                        img.onerror = null;
-                        img.style.display = "none";
-                        if (img.parentElement) img.parentElement.innerHTML = "✕";
-                      }}
-                    />
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-
-          <button
-            onClick={handleAddBook}
-            className="add-book-button"
-            aria-label="Добавить книгу"
-            type="button"
+        {error && (
+          <div
+            style={{
+              margin: "20px auto",
+              maxWidth: "800px",
+              padding: "15px",
+              backgroundColor: "#f8d7da",
+              color: "#721c24",
+              borderRadius: "5px",
+              textAlign: "center",
+            }}
           >
-            <img
-              src="/assets/plus_icon.svg"
-              alt="Добавить"
-              className="plus-icon"
-              onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-                const img = e.currentTarget;
-                img.onerror = null;
-                img.style.display = "none";
-                if (img.parentElement) img.parentElement.innerHTML = "+";
-              }}
-            />
-          </button>
-        </div>
-      </div>
+            {error}
+          </div>
+        )}
 
-      {showDeleteModal && selectedBook && (
-        <DeleteBookModal
-          book={selectedBook}
-          onClose={closeModal}
-          onConfirm={handleConfirmDelete}
-        />
-      )}
-    </div>
+        <div className="main-content">
+          <div className="mcontent-wrapper">
+            <div className="my-books-header">
+              <h1 className="page-title">Мои книги</h1>
+            </div>
+
+            <div className="books-list">
+              {books.length === 0 ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "50px 20px",
+                    color: "#666",
+                    gridColumn: "1 / -1",
+                  }}
+                >
+                  <p style={{ fontSize: "18px", marginBottom: "20px" }}>
+                    У вас пока нет добавленных книг
+                  </p>
+                  <Button onClick={handleAddBook}>Добавить первую книгу</Button>
+                </div>
+              ) : (
+                books.map((book) => (
+                  <div key={String(book.id)} className="book-item">
+                    <div className="book-info-section">
+                      <BookCard book={book} />
+
+                      {/* Статус: ожидает подтверждения */}
+                      {book.reservationStatus === "pending_confirmation" && (
+                        <div className="reservation-details pending">
+                          <div className="reservation-info">
+                            <span className="status-badge">Ожидает подтверждения</span>
+                            <div className="reader-name">
+                              Читатель: {book.reservedBy}
+                            </div>
+                          </div>
+                          <div className="action-buttons">
+                            <button
+                              onClick={() => void handleConfirmReservation(book)}
+                              className="confirm-button"
+                              type="button"
+                            >
+                              ✅ Подтвердить
+                            </button>
+                            <button
+                              onClick={() => void handleRejectReservation(book)}
+                              className="reject-button"
+                              type="button"
+                            >
+                              ❌ Отклонить
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Статус: активное бронирование */}
+                      {book.reservationStatus === "reserved" && (
+                        <div className="reservation-details active">
+                          <div className="reservation-info">
+                            Читает{" "}
+                            <span className="reader-name">{book.reservedBy}</span>
+                          </div>
+
+                          {typeof book.daysLeft === "number" && book.daysLeft >= 0 && (
+                            <div className="days-left-info">
+                              До конца бронирования:{" "}
+                              <span
+                                className={`days-count ${
+                                  book.daysLeft <= 3 ? "warning" : ""
+                                }`}
+                              >
+                                {book.daysLeft} {getDaysText(book.daysLeft)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => void handleDeleteClick(book)}
+                      className={`delete-button ${
+                        book.reservationStatus !== "available" ? "reserved" : ""
+                      }`}
+                      aria-label="Удалить книгу"
+                      title={
+                        book.reservationStatus !== "available"
+                          ? "Книга забронирована, удаление невозможно"
+                          : "Удалить книгу"
+                      }
+                      type="button"
+                    >
+                      <img
+                        src="/assets/delete_icon.svg"
+                        alt="Удалить"
+                        className="delete-icon"
+                        onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                          const img = e.currentTarget;
+                          img.onerror = null;
+                          img.style.display = "none";
+                          if (img.parentElement) img.parentElement.innerHTML = "✕";
+                        }}
+                      />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <button
+              onClick={handleAddBook}
+              className="add-book-button"
+              aria-label="Добавить книгу"
+              type="button"
+            >
+              <img
+                src="/assets/plus_icon.svg"
+                alt="Добавить"
+                className="plus-icon"
+                onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                  const img = e.currentTarget;
+                  img.onerror = null;
+                  img.style.display = "none";
+                  if (img.parentElement) img.parentElement.innerHTML = "+";
+                }}
+              />
+            </button>
+          </div>
+        </div>
+
+        {showDeleteModal && selectedBook && (
+          <DeleteBookModal
+            book={selectedBook}
+            onClose={closeModal}
+            onConfirm={handleConfirmDelete}
+          />
+        )}
+
+        {showConfirmModal && selectedBook && pendingReservation && (
+          <ConfirmReservationModal
+            bookTitle={selectedBook.title}
+            readerName={pendingReservation.readerName}
+            onClose={closeModal}
+            onConfirm={handleConfirmBooking}
+          />
+        )}
+      </div>
+    </>
   );
 };
 

@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import Button from "../../UI/Button/Button";
 import Header from "../../UI/Header/Header";
+import { SeoManager } from "../../../components/SEO/SeoManager";
 import "./LogInPage.css";
 
-import { bookApi, type LoginResponse } from "../../../lib/api";
 
 type JwtPayload = {
   user_id?: number | string;
@@ -35,7 +35,7 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
-  const { login: authLogin } = useAuth(); // Используем существующий метод login из контекста
+  const { login: authLogin } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
@@ -50,7 +50,6 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      // Используем метод login из AuthContext
       await authLogin(login, password);
       navigate("/home");
     } catch (err: any) {
@@ -66,69 +65,78 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="login-page">
-      <Header />
+    <>
+      <SeoManager 
+        title="Вход в аккаунт"
+        description="Войдите в свой аккаунт MyReaDei для управления книгами и бронированиями"
+        noIndex={true}
+        noFollow={true}
+      />
+      
+      <div className="login-page">
+        <Header />
 
-      <div className="login-container">
-        <h2 className="login-title">Войти в аккаунт</h2>
+        <div className="login-container">
+          <h1 className="login-title">Войти в аккаунт</h1>
 
-        {error && (
-          <div
-            style={{
-              color: "#721c24",
-              backgroundColor: "#f8d7da",
-              border: "1px solid #f5c6cb",
-              borderRadius: "5px",
-              padding: "15px",
-              marginBottom: "20px",
-              textAlign: "center",
-            }}
-          >
-            {error}
-          </div>
-        )}
+          {error && (
+            <div
+              style={{
+                color: "#721c24",
+                backgroundColor: "#f8d7da",
+                border: "1px solid #f5c6cb",
+                borderRadius: "5px",
+                padding: "15px",
+                marginBottom: "20px",
+                textAlign: "center",
+              }}
+            >
+              {error}
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label className="form-label">Логин</label>
-            <input
-              type="text"
-              value={login}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLogin(e.target.value)}
-              className="form-input"
-              placeholder="username"
-              disabled={loading}
-              required
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="form-group">
+              <label className="form-label">Логин</label>
+              <input
+                type="text"
+                value={login}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLogin(e.target.value)}
+                className="form-input"
+                placeholder="username"
+                disabled={loading}
+                required
+              />
+            </div>
 
-          <div className="form-group">
-            <label className="form-label">Пароль</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-              className="form-input"
-              placeholder="password"
-              disabled={loading}
-              required
-            />
-          </div>
+            <div className="form-group">
+              <label className="form-label">Пароль</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                className="form-input"
+                placeholder="password"
+                disabled={loading}
+                required
+              />
+            </div>
+
+            <div className="button-center">
+              <Button type="submit" className="fixed-width" disabled={loading}>
+                {loading ? "Вход..." : "Войти"}
+              </Button>
+            </div>
+          </form>
 
           <div className="button-center">
-            <Button type="submit" className="fixed-width" disabled={loading}>
-              {loading ? "Вход..." : "Войти"}
+            <Button to="/registration" className="fixed-width">
+              Зарегистрироваться
             </Button>
           </div>
-        </form>
-
-        <div className="button-center">
-          <Button to="/registration" className="fixed-width">
-            Зарегистрироваться
-          </Button>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -18,7 +18,6 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
-
 class UserUpdateRole(BaseModel):
     role: UserRole
 

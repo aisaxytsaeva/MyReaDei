@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, UploadFile, status
+from fastapi import UploadFile
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List, Optional
@@ -96,7 +96,32 @@ def create_book(db: Session, book_data: BookCreate, user_id: int) -> Book:
         tags = db.query(Tag).filter(Tag.id.in_(book_data.tag_ids)).all()
         db_book.tags.extend(tags)
     
+    db.commit()
+    db.refresh(db_book)
+    return db_book
+def create_book(db: Session, book_data: BookCreate, user_id: int) -> Book:
+    db_book = Book(
+        title=book_data.title,
+        author=book_data.author,
+        description=book_data.description,
+        cover_image_key=book_data.cover_image_key,  
+        owner_id=user_id,  
+        status="available"  
+    )
+    db.add(db_book)
+    db.flush()  
     
+    for location_id in book_data.location_ids:
+        book_location = BookLocation(
+            book_id=db_book.id,
+            location_id=location_id
+        )
+        db.add(book_location)
+    
+    if hasattr(book_data, 'tag_ids') and book_data.tag_ids:
+        tag_ids_list = [tag.id for tag in book_data.tag_ids]  
+        tags = db.query(Tag).filter(Tag.id.in_(tag_ids_list)).all()
+        db_book.tags.extend(tags)
     
     db.commit()
     db.refresh(db_book)
@@ -126,7 +151,7 @@ def get_book_with_details(db: Session, book_id: int) -> Optional[BookResponse]:
     book = db.query(Book).options(joinedload(Book.tags)).filter(Book.id == book_id).first()
     
     if not book:
-        return None
+        raise ValueError("Книга не найдена")
     
     cover_url = get_book_cover_url(book)
     readers_count = get_readers_count(db, book.id)
@@ -142,23 +167,23 @@ def get_book_with_details(db: Session, book_id: int) -> Optional[BookResponse]:
     
     tags = [TagInfo(id=tag.id, tag_name=tag.tag_name) for tag in book.tags]
 
-    return {
-        "id": book.id,
-        "title": book.title,
-        "author": book.author,
-        "description": book.description or "",
-        "cover_image_uri": cover_url,  
-        "reader_count": readers_count or 0,  
-        "locations": location_items,
-        "owner_id": book.owner_id,
-        "status": book.status or "available",
-        "tags": tags
-    }
+    return BookResponse(
+        id=book.id,
+        title=book.title,
+        author=book.author,
+        description=book.description or "",
+        cover_image_uri=cover_url,
+        reader_count=readers_count or 0,
+        locations=location_items,
+        owner_id=book.owner_id,
+        status=book.status or "available",
+        tags=tags
+    )
 
 def update_book(
-    db: Session, 
-    book_id: int, 
-    book_data: BookUpdate, 
+    db: Session,
+    book_id: int,
+    book_data: BookUpdate,
     user_id: int
 ) -> Book:
     book = db.query(Book).filter(Book.id == book_id).first()
@@ -173,43 +198,53 @@ def update_book(
             Reservation.book_id == book_id,
             Reservation.status.in_(["pending", "confirmed_by_owner", "handed_over"])
         ).count()
-        
+
         if active_reservations > 0 and book_data.status == "unavailable":
             raise ValueError("Нельзя сделать книгу недоступной при активных бронированиях")
-    
+
     try:
-        update_data = book_data.dict(exclude_unset=True)
-        
+        update_data = book_data.model_dump(exclude_unset=True)
+
         excluded_fields = ['location_ids', 'tag_ids', 'cover_image_key']
-        
+
         for field, value in update_data.items():
             if field not in excluded_fields:
                 setattr(book, field, value)
-        
+
         if 'cover_image_key' in update_data and update_data['cover_image_key'] is not None:
             if book.cover_image_key:
                 try:
                     minio_service.delete_file(book.cover_image_key)
                 except Exception as e:
                     logger.error(f"Error deleting old cover: {e}")
-            
+
             book.cover_image_key = update_data['cover_image_key']
             book.cover_image_url = minio_service.get_file_url(update_data['cover_image_key'])
             book.cover_image_updated_at = datetime.utcnow()
 
         if 'tag_ids' in update_data and update_data['tag_ids'] is not None:
-            tags = db.query(Tag).filter(Tag.id.in_(update_data['tag_ids'])).all()
+            tag_ids_list = []
+            for tag in update_data['tag_ids']:
+                if hasattr(tag, 'id'):
+                    tag_ids_list.append(tag.id)
+                elif isinstance(tag, dict):
+                    tag_ids_list.append(tag['id'])
+                else:
+                    tag_ids_list.append(int(tag))  # если уже число
+            
+            tags = db.query(Tag).filter(Tag.id.in_(tag_ids_list)).all()
             book.tags = tags
 
         book.updated_at = func.now()
-        
+
         db.commit()
         db.refresh(book)
         return book
-        
+
     except Exception as e:
         db.rollback()
         raise ValueError(f"Ошибка при обновлении книги: {str(e)}")
+    
 
 async def replace_book_cover(
     db: Session,
@@ -296,7 +331,7 @@ def update_book_locations(
 def add_tags_to_book(
     db: Session,
     book_id: int,
-    tag_ids: List[int],
+    tag_ids: List[TagInfo],  
     user_id: int
 ) -> Book:
     book = db.query(Book).filter(Book.id == book_id).first()
@@ -306,8 +341,9 @@ def add_tags_to_book(
     if book.owner_id != user_id:
         raise ValueError("Вы не являетесь владельцем этой книги")
     
-    tags = db.query(Tag).filter(Tag.id.in_(tag_ids)).all()
-    if len(tags) != len(tag_ids):
+    tag_ids_list = [tag.id for tag in tag_ids]
+    tags = db.query(Tag).filter(Tag.id.in_(tag_ids_list)).all()
+    if len(tags) != len(tag_ids_list):
         raise ValueError("Некоторые теги не найдены")
     
     existing_tag_ids = {tag.id for tag in book.tags}
@@ -322,7 +358,7 @@ def add_tags_to_book(
 def remove_tags_from_book(
     db: Session,
     book_id: int,
-    tag_ids: List[int],
+    tag_ids: List[TagInfo],  # Изменен тип параметра
     user_id: int
 ) -> Book:
     book = db.query(Book).filter(Book.id == book_id).first()
@@ -332,7 +368,8 @@ def remove_tags_from_book(
     if book.owner_id != user_id:
         raise ValueError("Вы не являетесь владельцем этой книги")
     
-    book.tags = [tag for tag in book.tags if tag.id not in tag_ids]
+    tag_ids_list = [tag.id for tag in tag_ids]
+    book.tags = [tag for tag in book.tags if tag.id not in tag_ids_list]
     
     db.commit()
     db.refresh(book)
@@ -340,14 +377,16 @@ def remove_tags_from_book(
 
 def search_books_by_tags(
     db: Session,
-    tag_ids: List[int],
+    tag_ids: List[TagInfo],  
     skip: int = 0,
     limit: int = 100
 ) -> List[Book]:
+    tag_ids_list = [tag.id for tag in tag_ids]
+    
     books = db.query(Book).join(Book.tags).filter(
-        Tag.id.in_(tag_ids)
+        Tag.id.in_(tag_ids_list)
     ).group_by(Book.id).having(
-        func.count(Tag.id) == len(tag_ids)  
+        func.count(Tag.id) == len(tag_ids_list)  
     ).offset(skip).limit(limit).all()
     
     return books
@@ -355,7 +394,7 @@ def search_books_by_tags(
 def delete_book(db: Session, book_id: int, user_id: int) -> bool:
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
-        raise ValueError("Книга не найдена") 
+        raise ValueError("Книга не найдена")
     
     active_reservations = db.query(Reservation).filter(
         Reservation.book_id == book_id, 
@@ -393,10 +432,7 @@ def update_status_by_admin(
     ) -> Book:
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="BOOK NOT FOUND "
-        )
+        raise ValueError("Книга не найдена")
 
     allowed = {
         "available",
@@ -404,10 +440,7 @@ def update_status_by_admin(
     }
     
     if new_status not in allowed:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid status: {new_status}",
-        )
+        raise ValueError(f"Invalid status: {new_status}")
     
     book.status = new_status
     db.add(book)

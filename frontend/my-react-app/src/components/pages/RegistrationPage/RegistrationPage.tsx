@@ -1,10 +1,9 @@
-// src/components/pages/RegistrationPage/RegistrationPage.tsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../UI/Button/Button";
 import Header from "../../UI/Header/Header";
+import { SeoManager } from "../../../components/SEO/SeoManager";
 import "./RegistrationPage.css";
-
 import { bookApi } from "../../../lib/api";
 
 type FormData = {
@@ -87,7 +86,6 @@ const RegistrationPage: React.FC = () => {
             : "Ошибка при создании пользователя"
         );
       } else if (!status) {
-
         const msg = String(detail);
         if (msg.includes("Network") || msg.includes("Failed to fetch")) {
           setError(
@@ -111,98 +109,107 @@ const RegistrationPage: React.FC = () => {
   };
 
   return (
-    <div className="registration-page">
-      <Header />
+    <>
+      <SeoManager 
+        title="Регистрация"
+        description="Создайте новый аккаунт в MyReaDei для обмена книгами"
+        noIndex={true}
+        noFollow={true}
+      />
+      
+      <div className="registration-page">
+        <Header />
 
-      <div className="registration-container">
-        <h2 className="registration-title">Регистрация</h2>
+        <div className="registration-container">
+          <h1 className="registration-title">Регистрация</h1>
 
-        {success && (
-          <div
-            style={{
-              color: "#000000",
-              borderRadius: "5px",
-              padding: "15px",
-              marginBottom: "20px",
-              textAlign: "center",
-            }}
-          >
-            Регистрация успешна! Перенаправляем на страницу входа...
-          </div>
-        )}
-
-        {error && !success && (
-          <div
-            style={{
-              color: "#721c24",
-              backgroundColor: "#f8d7da",
-              border: "1px solid #f5c6cb",
-              borderRadius: "5px",
-              padding: "15px",
-              marginBottom: "20px",
-              textAlign: "center",
-              whiteSpace: "pre-line",
-            }}
-          >
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="registration-form">
-          <div className="form-group">
-            <label className="form-label">Логин</label>
-            <input
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="username"
-              disabled={loading || success}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Почта</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="user@example.com"
-              disabled={loading || success}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Пароль</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="password"
-              disabled={loading || success}
-              required
-            />
-          </div>
-
-          <div className="button-center">
-            <Button
-              type="submit"
-              disabled={loading || success}
-              style={{ width: "460px", height: "50px" }}
+          {success && (
+            <div
+              style={{
+                color: "#000000",
+                borderRadius: "5px",
+                padding: "15px",
+                marginBottom: "20px",
+                textAlign: "center",
+              }}
             >
-              {loading ? "Регистрация..." : success ? "Успешно!" : "Зарегистрироваться"}
-            </Button>
-          </div>
-        </form>
+              Регистрация успешна! Перенаправляем на страницу входа...
+            </div>
+          )}
+
+          {error && !success && (
+            <div
+              style={{
+                color: "#721c24",
+                backgroundColor: "#f8d7da",
+                border: "1px solid #f5c6cb",
+                borderRadius: "5px",
+                padding: "15px",
+                marginBottom: "20px",
+                textAlign: "center",
+                whiteSpace: "pre-line",
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="registration-form">
+            <div className="form-group">
+              <label className="form-label">Логин</label>
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                className="form-input"
+                placeholder="username"
+                disabled={loading || success}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Почта</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="form-input"
+                placeholder="user@example.com"
+                disabled={loading || success}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Пароль</label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="form-input"
+                placeholder="password"
+                disabled={loading || success}
+                required
+              />
+            </div>
+
+            <div className="button-center">
+              <Button
+                type="submit"
+                disabled={loading || success}
+                style={{ width: "460px", height: "50px" }}
+              >
+                {loading ? "Регистрация..." : success ? "Успешно!" : "Зарегистрироваться"}
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -3,11 +3,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import BookCard from "../../UI/Book/BookCard";
 import SearchBar from "../../UI/Book/SearchBar";
 import Header from "../../UI/Header/Header";
+import { SeoManager } from "../../../components/SEO/SeoManager";
 import { useAuth } from "../../../context/AuthContext";
 import "./FoundPage.css";
-import { CardBook} from "../../../types";
+import { CardBook } from "../../../types";
 import { bookApi, type Id, type Book, type Tag } from "../../../lib/api";
-
 
 const getBookWord = (count: number): string => {
   const lastDigit = count % 10;
@@ -53,7 +53,6 @@ const FoundPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   
-  // Состояния для фильтрации по тегам
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [loadingTags, setLoadingTags] = useState<boolean>(false);
@@ -107,7 +106,7 @@ const FoundPage: React.FC = () => {
       const resp = await bookApi.getTags(0, 100);
       setAllTags(resp.data as Tag[]);
     } catch (err) {
-      console.error("❌ Ошибка загрузки тегов:", err);
+      console.error("Ошибка загрузки тегов:", err);
       setAllTags([]);
     } finally {
       setLoadingTags(false);
@@ -216,249 +215,283 @@ const FoundPage: React.FC = () => {
   const hasActiveFilters = selectedTagIds.length > 0;
   const hasOriginalResults = originalSearchResults.length > 0;
 
+  // SEO мета-данные
+  const getSeoTitle = () => {
+    if (searchQuery) return `Результаты поиска: ${searchQuery}`;
+    if (hasActiveFilters) return `Книги по тегам | MyReaDei`;
+    return "Каталог книг | MyReaDei";
+  };
+
+  const getSeoDescription = () => {
+    if (searchQuery) {
+      return `Найдено ${books.length} ${getBookWord(books.length)} по запросу "${searchQuery}". Книги для обмена и бронирования.`;
+    }
+    if (hasActiveFilters) {
+      const tagNames = allTags.filter(t => selectedTagIds.includes(t.id)).map(t => t.tag_name).join(', ');
+      return `Книги с тегами: ${tagNames}. ${books.length} ${getBookWord(books.length)} в каталоге.`;
+    }
+    return `Каталог книг MyReaDei. ${books.length} ${getBookWord(books.length)} доступно для бронирования. Обменивайтесь книгами с другими читателями.`;
+  };
+
+  const getCanonicalUrl = () => {
+    const baseUrl = "https://myreadei.com";
+    if (searchQuery) return `${baseUrl}/search?q=${encodeURIComponent(searchQuery)}`;
+    if (hasActiveFilters) return `${baseUrl}/catalog?tags=${selectedTagIds.join(',')}`;
+    return `${baseUrl}/catalog`;
+  };
+
   return (
-    <div className="page">
-      <Header />
+    <>
+      <SeoManager 
+        title={getSeoTitle()}
+        description={getSeoDescription()}
+        canonicalUrl={getCanonicalUrl()}
+        ogType="website"
+        noIndex={false}
+      />
+      
+      <div className="page">
+        <Header />
 
-      <div className="search-container">
-        <SearchBar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onSearchSubmit={(q) => void handleSearch(q)}
-        />
-      </div>
+        <div className="search-container">
+          <SearchBar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSearchSubmit={(q) => void handleSearch(q)}
+          />
+        </div>
 
-      {hasOriginalResults && (
-        <button
-          onClick={() => setShowTagFilter(!showTagFilter)}
-          className={`filter-toggle-btn ${showTagFilter ? 'active' : ''}`}
-        >
-          {showTagFilter ? "Скрыть фильтр" : " Фильтр по тегам"}
-        </button>
-      )}
+        {hasOriginalResults && (
+          <button
+            onClick={() => setShowTagFilter(!showTagFilter)}
+            className={`filter-toggle-btn ${showTagFilter ? 'active' : ''}`}
+          >
+            {showTagFilter ? "Скрыть фильтр" : " Фильтр по тегам"}
+          </button>
+        )}
 
-
-      {showTagFilter && hasOriginalResults && (
-        <div className="tags-filter-panel">
-          <div className="tags-filter-header">
-            <h3 className="tags-filter-title">
-              {selectedTagIds.length > 0 
-                ? `Выбрано тегов: ${selectedTagIds.length}` 
-                : "Выберите теги для фильтрации"}
+        {showTagFilter && hasOriginalResults && (
+          <div className="tags-filter-panel">
+            <div className="tags-filter-header">
+              <h3 className="tags-filter-title">
+                {selectedTagIds.length > 0 
+                  ? `Выбрано тегов: ${selectedTagIds.length}` 
+                  : "Выберите теги для фильтрации"}
+                {selectedTagIds.length > 0 && (
+                  <span className="selected-count">{selectedTagIds.length}</span>
+                )}
+              </h3>
               {selectedTagIds.length > 0 && (
-                <span className="selected-count">{selectedTagIds.length}</span>
-              )}
-            </h3>
-            {selectedTagIds.length > 0 && (
-              <button
-                onClick={handleClearTags}
-                className="clear-tags-btn"
-              >
-                Сбросить
-              </button>
-            )}
-          </div>
-
-          {loadingTags ? (
-            <div className="loading-container">
-              <div className="loading-spinner" />
-            </div>
-          ) : allTags.length === 0 ? (
-            <div className="empty-state">
-              <p>Нет доступных тегов</p>
-              {isAuthenticated && (
                 <button
-                  onClick={handleGoToTagManagement}
-                  className="reset-filter-btn"
-                  style={{ marginTop: "10px" }}
+                  onClick={handleClearTags}
+                  className="clear-tags-btn"
                 >
-                  Создать тег
+                  Сбросить
                 </button>
               )}
             </div>
-          ) : (
-            <>
-              <div className="tags-grid">
-                {allTags.map((tag) => (
-                  <label
-                    key={tag.id}
-                    className={`tag-checkbox-label ${selectedTagIds.includes(tag.id) ? 'selected' : ''}`}
-                    onClick={() => handleTagToggle(tag.id)}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedTagIds.includes(tag.id)}
-                      onChange={() => {}}
-                    />
-                    <span className="tag-name">{tag.tag_name}</span>
-                    {selectedTagIds.includes(tag.id) && (
-                      <span className="tag-check">✓</span>
-                    )}
-                  </label>
-                ))}
+
+            {loadingTags ? (
+              <div className="loading-container">
+                <div className="loading-spinner" />
               </div>
+            ) : allTags.length === 0 ? (
+              <div className="empty-state">
+                <p>Нет доступных тегов</p>
+                {isAuthenticated && (
+                  <button
+                    onClick={handleGoToTagManagement}
+                    className="reset-filter-btn"
+                    style={{ marginTop: "10px" }}
+                  >
+                    Создать тег
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="tags-grid">
+                  {allTags.map((tag) => (
+                    <label
+                      key={tag.id}
+                      className={`tag-checkbox-label ${selectedTagIds.includes(tag.id) ? 'selected' : ''}`}
+                      onClick={() => handleTagToggle(tag.id)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedTagIds.includes(tag.id)}
+                        onChange={() => {}}
+                      />
+                      <span className="tag-name">{tag.tag_name}</span>
+                      {selectedTagIds.includes(tag.id) && (
+                        <span className="tag-check">✓</span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+
+                {selectedTagIds.length > 0 && (
+                  <div className={`filter-info ${filtering ? 'loading' : ''}`}>
+                    {filtering 
+                      ? "Фильтрация..." 
+                      : `Найдено книг: ${books.length} из ${originalSearchResults.length}`}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
+
+        <section className="popular-books-section">
+          {isLoading ? (
+            <div className="loading-container">
+              <div className="loading-spinner" />
+              <p className="loading-text">
+                {hasActiveFilters 
+                  ? "Фильтрация книг..." 
+                  : searchQuery 
+                  ? `Ищем "${searchQuery}"...` 
+                  : "Загружаем книги..."}
+              </p>
+            </div>
+          ) : hasActiveFilters ? (
+            <>
+              <h1 className="section-title">
+                {books.length > 0 
+                  ? `Нашли ${books.length} ${getBookWord(books.length)} по выбранным тегам` 
+                  : "Ничего не найдено"}
+              </h1>
 
               {selectedTagIds.length > 0 && (
-                <div className={`filter-info ${filtering ? 'loading' : ''}`}>
-                  {filtering 
-                    ? "Фильтрация..." 
-                    : `Найдено книг: ${books.length} из ${originalSearchResults.length}`}
+                <div className="active-filters">
+                  <span className="active-filters-label">Активные теги:</span>
+                  {selectedTagIds.map((tagId) => {
+                    const tag = allTags.find(t => t.id === tagId);
+                    return tag ? (
+                      <span key={tagId} className="active-filter-tag">
+                        {tag.tag_name}
+                        <button
+                          onClick={() => handleTagToggle(tagId)}
+                          className="remove-filter-btn"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ) : null;
+                  })}
+                  <button onClick={handleClearTags} className="clear-all-filters">
+                    Сбросить все
+                  </button>
+                </div>
+              )}
+
+              {books.length > 0 ? (
+                <div className="books-grid">
+                  {books.map((book) => (
+                    <div
+                      key={String(book.id)}
+                      onClick={() => handleBookAction(book.id)}
+                      className="book-card-wrapper"
+                    >
+                      <BookCard book={book} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <h3 className="empty-state-title">Книги не найдены</h3>
+                  <p className="empty-state-text">
+                    Книги с выбранными тегами не найдены среди результатов поиска
+                  </p>
+                  <button
+                    onClick={handleClearTags}
+                    className="reset-filter-btn"
+                  >
+                    Сбросить фильтр
+                  </button>
+                </div>
+              )}
+            </>
+          ) : isSearchMode ? (
+            <>
+              <h1 className="section-title">
+                {books.length > 0 
+                  ? `Нашли ${books.length} ${getBookWord(books.length)}` 
+                  : "Ничего не найдено"}
+              </h1>
+
+              <p className="search-query-info">
+                По запросу: "{searchQuery || initialSearchQuery}"
+              </p>
+
+              {books.length > 0 ? (
+                <div className="books-grid">
+                  {books.map((book) => (
+                    <div
+                      key={String(book.id)}
+                      onClick={() => handleBookAction(book.id)}
+                      className="book-card-wrapper"
+                    >
+                      <BookCard book={book} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <h3 className="empty-state-title">Ничего не найдено</h3>
+                  <p className="empty-state-text">
+                    Попробуйте изменить запрос или поискать другие книги
+                  </p>
+                  <button
+                    onClick={onShowAllBooks}
+                    className="reset-filter-btn"
+                  >
+                    Показать все книги
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <h1 className="section-title">
+                Каталог книг
+              </h1>
+
+              <p className="catalog-count">
+                Всего книг: {books.length}
+              </p>
+
+              {books.length > 0 ? (
+                <div className="books-grid">
+                  {books.map((book) => (
+                    <div
+                      key={String(book.id)}
+                      onClick={() => handleBookAction(book.id)}
+                      className="book-card-wrapper"
+                    >
+                      <BookCard book={book} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <h3 className="empty-state-title">Нет доступных книг</h3>
+                  <p className="empty-state-text">
+                    В каталоге пока нет книг
+                  </p>
                 </div>
               )}
             </>
           )}
-        </div>
-      )}
-
-      {error && (
-        <div className="error-message">
-          {error}
-        </div>
-      )}
-
-      <section className="popular-books-section">
-        {isLoading ? (
-          <div className="loading-container">
-            <div className="loading-spinner" />
-            <p className="loading-text">
-              {hasActiveFilters 
-                ? "Фильтрация книг..." 
-                : searchQuery 
-                ? `Ищем "${searchQuery}"...` 
-                : "Загружаем книги..."}
-            </p>
-          </div>
-        ) : hasActiveFilters ? (
-          <>
-            <h2 className="section-title">
-              {books.length > 0 
-                ? `Нашли ${books.length} ${getBookWord(books.length)} по выбранным тегам` 
-                : "Ничего не найдено"}
-            </h2>
-
-            {selectedTagIds.length > 0 && (
-              <div className="active-filters">
-                <span className="active-filters-label">Активные теги:</span>
-                {selectedTagIds.map((tagId) => {
-                  const tag = allTags.find(t => t.id === tagId);
-                  return tag ? (
-                    <span key={tagId} className="active-filter-tag">
-                      {tag.tag_name}
-                      <button
-                        onClick={() => handleTagToggle(tagId)}
-                        className="remove-filter-btn"
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  ) : null;
-                })}
-                <button onClick={handleClearTags} className="clear-all-filters">
-                  Сбросить все
-                </button>
-              </div>
-            )}
-
-            {books.length > 0 ? (
-              <div className="books-grid">
-                {books.map((book) => (
-                  <div
-                    key={String(book.id)}
-                    onClick={() => handleBookAction(book.id)}
-                    className="book-card-wrapper"
-                  >
-                    <BookCard book={book} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-state">
-                <h3 className="empty-state-title">Книги не найдены</h3>
-                <p className="empty-state-text">
-                  Книги с выбранными тегами не найдены среди результатов поиска
-                </p>
-                <button
-                  onClick={handleClearTags}
-                  className="reset-filter-btn"
-                >
-                  Сбросить фильтр
-                </button>
-              </div>
-            )}
-          </>
-        ) : isSearchMode ? (
-          <>
-            <h2 className="section-title">
-              {books.length > 0 
-                ? `Нашли ${books.length} ${getBookWord(books.length)}` 
-                : "Ничего не найдено"}
-            </h2>
-
-            <p className="search-query-info">
-              По запросу: "{searchQuery || initialSearchQuery}"
-            </p>
-
-            {books.length > 0 ? (
-              <div className="books-grid">
-                {books.map((book) => (
-                  <div
-                    key={String(book.id)}
-                    onClick={() => handleBookAction(book.id)}
-                    className="book-card-wrapper"
-                  >
-                    <BookCard book={book} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-state">
-                <h3 className="empty-state-title">Ничего не найдено</h3>
-                <p className="empty-state-text">
-                  Попробуйте изменить запрос или поискать другие книги
-                </p>
-                <button
-                  onClick={onShowAllBooks}
-                  className="reset-filter-btn"
-                >
-                  Показать все книги
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            <h2 className="section-title">
-              Каталог книг
-            </h2>
-
-            <p className="catalog-count">
-              Всего книг: {books.length}
-            </p>
-
-            {books.length > 0 ? (
-              <div className="books-grid">
-                {books.map((book) => (
-                  <div
-                    key={String(book.id)}
-                    onClick={() => handleBookAction(book.id)}
-                    className="book-card-wrapper"
-                  >
-                    <BookCard book={book} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-state">
-                <h3 className="empty-state-title">Нет доступных книг</h3>
-                <p className="empty-state-text">
-                  В каталоге пока нет книг
-                </p>
-              </div>
-            )}
-          </>
-        )}
-      </section>
-    </div>
+        </section>
+      </div>
+    </>
   );
 };
 

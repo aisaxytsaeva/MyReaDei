@@ -11,6 +11,7 @@ from app.models.tags import Tag
 from app.schemas.books import BookCreate, BookUpdate, Catalog, TagInfo
 import logging
 from app.core.minio_client import minio_service
+from app.services.google_books import google_books_service
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,8 @@ async def create_book(
         
         parsed_location_ids = parse_ids(location_ids)
         parsed_tag_ids = parse_ids(tag_ids) if tag_ids else []
+
+        tag_objects = [TagInfo(id=tag_id, tag_name="") for tag_id in parsed_tag_ids]
         
         book_data = BookCreate(
             title=title,
@@ -56,7 +59,7 @@ async def create_book(
             description=description or "",
             cover_image_key=cover_image_key,  
             location_ids=parsed_location_ids,
-            tag_ids=parsed_tag_ids,    
+            tag_ids=tag_objects,    
         )
         
         created_book = books_crud.create_book(db, book_data, current_user.id)
@@ -199,18 +202,33 @@ async def get_catalog(
 
 
 @router.get("/{book_id}")
-async def get_book(
-    book_id: int,
-    db: Session = Depends(get_db)
-):
+async def get_book(book_id: int, db: Session = Depends(get_db)):
     book = books_crud.get_book_with_details(db, book_id)
     if not book:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Book not found"
-        )
-    return book
-
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    json_ld = {
+        "@context": "https://schema.org",
+        "@type": "Book",
+        "name": book.title,  
+        "author": {
+            "@type": "Person",
+            "name": book.author
+        },
+        "description": book.description,
+        "image": book.cover_image_uri,
+        "offers": {
+            "@type": "Offer",
+            "availability": "https://schema.org/InStock" if book.status == "available" else "https://schema.org/OutOfStock",
+            "price": 0,
+            "priceCurrency": "RUB"
+        }
+    }
+    
+    return {
+        **book.model_dump(),  
+        "json_ld": json_ld    
+    }
 
 @router.put("/{book_id}", status_code=status.HTTP_200_OK)
 async def update_book(
@@ -492,6 +510,21 @@ async def mark_delete_book(
     book = books_crud.update_status_by_admin(db, book_id, "marked_for_deletion")
     return book
 
+
+@router.get("/external/search")
+async def search_external_books(
+    query: str = Query(..., min_length=2, max_length=200),
+    db: Session = Depends(get_db)
+):
+    result = await google_books_service.search_books(query)
+    
+    if result.get("error"):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="External service temporarily unavailable"
+        )
+    
+    return result
 
 @router.post("/{book_id}/unmark-delete")
 async def unmark_delete_book(

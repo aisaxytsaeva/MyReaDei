@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.schemas.books import BookForDelete
 from app.crud import book as books_crud
 from app.core.db import get_db
-from app.core.security import get_current_user, require_admin, get_user_permissions
+from app.core.security import require_admin, get_user_permissions
 from app.models.users import User
 from app.core.permissions import UserRole
 

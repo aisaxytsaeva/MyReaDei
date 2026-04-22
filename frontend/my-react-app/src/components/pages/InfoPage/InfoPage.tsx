@@ -4,16 +4,15 @@ import { useAuth } from "../../../context/AuthContext";
 import BookingMenu from "../../UI/Book/BookingMenu";
 import Button from "../../UI/Button/Button";
 import Header from "../../UI/Header/Header";
+import {SeoManager} from "../../SEO/SeoManager";
 import "./InfoPage.css";
 
 import {
   bookApi,
   type Id,
-  type Book,
   type Reservation,
   type Location,
   type User as ApiUser,
-  type Tag,
 } from "../../../lib/api";
 import { BookDetails, OwnerInfo, LocationItem } from "./../../../types";
 
@@ -32,21 +31,17 @@ function extractAxiosErrorMessage(err: any): string {
   return err?.message ?? "Ошибка";
 }
 
-// Функция для получения правильного URL изображения
 const getImageUrl = (uri: string | null | undefined): string => {
   if (!uri) return "/assets/cover.png";
   
-  // Если URL уже полный (начинается с http:// или https://)
   if (uri.startsWith('http://') || uri.startsWith('https://')) {
     return uri;
   }
   
-  // Если относительный URL (начинается с /)
   if (uri.startsWith('/')) {
     return `http://localhost:8000${uri}`;
   }
   
-  // Если что-то другое
   return uri;
 };
 
@@ -373,279 +368,289 @@ const InfoPage: React.FC = () => {
   const canDeleteHard = isAdmin;
 
   return (
-    <div className="info-page">
-      <BookingMenu
-        isOpen={isBookingMenuOpen}
-        onClose={() => setIsBookingMenuOpen(false)}
-        onBook={handleBookConfirm}
+    <>
+      <SeoManager 
+        title={book.title}
+        description={book.description?.slice(0, 160)}
+        canonicalUrl={`https://myreadei.com/book/${book.id}`}
+        ogImage={book.cover_image_uri}
+        ogType="book"
+        noIndex={false}  
       />
+      <div className="info-page">
+        <BookingMenu
+          isOpen={isBookingMenuOpen}
+          onClose={() => setIsBookingMenuOpen(false)}
+          onBook={handleBookConfirm}
+        />
 
-      <Header />
+        <Header />
 
-      <div className="info-content">
-        <div className="book-container">
-          <div className="book-cover-section">
-            <div className="book-cover">
-              {book.cover_image_uri ? (
-                <img
-                  src={getImageUrl(book.cover_image_uri)}  // Исправлено!
-                  alt={book.title}
-                  className="book-image"
-                  onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-                    console.error("Failed to load image:", getImageUrl(book.cover_image_uri));
-                    const img = e.currentTarget;
-                    img.onerror = null;
-                    img.src = "/assets/cover.png";
-                    img.onerror = () => {
-                      img.style.display = "none";
-                      if (img.parentElement) {
-                        img.parentElement.innerHTML = '<div class="book-placeholder">📚</div>';
-                      }
-                    };
-                  }}
-                />
-              ) : (
-                <div className="book-placeholder">📚</div>
-              )}
+        <div className="info-content">
+          <div className="book-container">
+            <div className="book-cover-section">
+              <div className="book-cover">
+                {book.cover_image_uri ? (
+                  <img
+                    src={getImageUrl(book.cover_image_uri)}  // Исправлено!
+                    alt={book.title}
+                    className="book-image"
+                    onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                      console.error("Failed to load image:", getImageUrl(book.cover_image_uri));
+                      const img = e.currentTarget;
+                      img.onerror = null;
+                      img.src = "/assets/cover.png";
+                      img.onerror = () => {
+                        img.style.display = "none";
+                        if (img.parentElement) {
+                          img.parentElement.innerHTML = '<div class="book-placeholder">📚</div>';
+                        }
+                      };
+                    }}
+                  />
+                ) : (
+                  <div className="book-placeholder">📚</div>
+                )}
+              </div>
+
+              <div className="action-buttons-container">
+                {!user || !token ? (
+                  <Button onClick={handleLogin} className="action-button login">
+                    Войти для бронирования
+                  </Button>
+                ) : (
+                  <>
+                    {isOwner && (
+                      <>
+                        <div
+                          style={{
+                            textAlign: "center",
+                            marginBottom: "15px",
+                            padding: "10px",
+                            backgroundColor: "#d4edda",
+                            color: "#155724",
+                            borderRadius: "5px",
+                          }}
+                        >
+                          <strong>Это ваша книга</strong>
+                        </div>
+                        <div className="owner-buttons">
+                          <Button onClick={handleEdit} className="action-button edit">
+                            Редактировать
+                          </Button>
+                          <Button
+                            onClick={async () => {
+                              await handleDelete();
+                            }}
+                            variant="secondary"
+                            className="action-button delete"
+                          >
+                            Удалить
+                          </Button>
+                        </div>
+                      </>
+                    )}
+
+                    {!isOwner && isRegularUser && book.status === "available" && !isReservedByUser && (
+                      <Button onClick={handleReserve} className="action-button reserve">
+                        Забронировать
+                      </Button>
+                    )}
+
+                    {!isOwner && isRegularUser && isReservedByUser && (
+                      <div className="reservation-status">
+                        <p style={{ marginBottom: "10px", color: "#28a745" }}>
+                          Вы забронировали эту книгу
+                        </p>
+                      </div>
+                    )}
+
+                    {!isOwner &&
+                      isRegularUser &&
+                      book.status !== "available" &&
+                      !isReservedByUser && (
+                        <p style={{ color: "#dc3545", textAlign: "center" }}>
+                          Книга в данный момент недоступна
+                        </p>
+                      )}
+
+                    {!isOwner && canMarkDelete && (
+                      <Button onClick={handleMarkDelete} className="action-button delete">
+                        Пометить на удаление
+                      </Button>
+                    )}
+
+                    {!isOwner && canUnmarkDelete && (
+                      <Button onClick={handleUnmarkDelete} className="action-button edit">
+                        Снять пометку удаления
+                      </Button>
+                    )}
+
+                    {!isOwner && canDeleteHard && (
+                      <Button
+                        onClick={handleDelete}
+                        variant="secondary"
+                        className="action-button delete"
+                      >
+                        Удалить книгу
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
-            <div className="action-buttons-container">
-              {!user || !token ? (
-                <Button onClick={handleLogin} className="action-button login">
-                  Войти для бронирования
-                </Button>
-              ) : (
-                <>
-                  {isOwner && (
-                    <>
-                      <div
+            <div className="book-info-section">
+              <div className="book-header">
+                <h1 className="book-title">{book.title}</h1>
+                <h2 className="book-author">{book.author}</h2>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    marginTop: "10px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span className={`status-badge ${book.status}`}>
+                    {book.status === "available"
+                      ? "Доступна"
+                      : book.status === "reserved"
+                      ? "Забронирована"
+                      : book.status === "marked_for_deletion"
+                      ? "Помечена на удаление"
+                      : "Недоступна"}
+                  </span>
+
+                  {book.reader_count > 0 && (
+                    <span
+                      style={{
+                        fontSize: "14px",
+                        color: "#666",
+                        backgroundColor: "#f8f9fa",
+                        padding: "4px 10px",
+                        borderRadius: "10px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                      }}
+                    >
+                      <span>📖 {book.reader_count} читателей</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {book.tags && book.tags.length > 0 && (
+                <div className="info-container">
+                  <h3 className="section1-title">Теги</h3>
+                  <div className="tags-container" style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    {book.tags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="tag-item"
                         style={{
-                          textAlign: "center",
-                          marginBottom: "15px",
-                          padding: "10px",
-                          backgroundColor: "#d4edda",
-                          color: "#155724",
-                          borderRadius: "5px",
+                          backgroundColor: "#e9ecef",
+                          padding: "4px 12px",
+                          borderRadius: "20px",
+                          fontSize: "14px",
+                          color: "#495057",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          cursor: "pointer",
+                          transition: "all 0.2s",
+                        }}
+                        onClick={() => {
+                          navigate(`/catalog?tag=${tag.tag_name}`);
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "#dee2e6";
+                          e.currentTarget.style.transform = "scale(1.02)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "#e9ecef";
+                          e.currentTarget.style.transform = "scale(1)";
                         }}
                       >
-                        <strong>Это ваша книга</strong>
-                      </div>
-                      <div className="owner-buttons">
-                        <Button onClick={handleEdit} className="action-button edit">
-                          Редактировать
-                        </Button>
-                        <Button
-                          onClick={async () => {
-                            await handleDelete();
-                          }}
-                          variant="secondary"
-                          className="action-button delete"
-                        >
-                          Удалить
+                        <span>{tag.tag_name}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="info-container">
+                <h3 className="section1-title">Описание</h3>
+                <p className="book-description">{book.description}</p>
+              </div>
+
+              <div className="info-container">
+                <h3 className="section1-title">Место хранения</h3>
+                <div className="location-content">
+                  {book.locations && book.locations.length > 0 ? (
+                    <>
+                      <p className="book-location">
+                        {book.locations.map((loc, index) => {
+                          const text =
+                            typeof loc === "string"
+                              ? loc
+                              : [loc.name, loc.address].filter(Boolean).join(" — ") || "Место хранения";
+
+                          return (
+                            <React.Fragment key={index}>
+                              {text}
+                              {index < book.locations.length - 1 && ", "}
+                            </React.Fragment>
+                          );
+                        })}
+                      </p>
+                      <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+                        <Button onClick={handleMapClick} className="map-button">
+                          Посмотреть на карте
                         </Button>
                       </div>
                     </>
+                  ) : (
+                    <p className="book-location">Место хранения не указано</p>
                   )}
-
-                  {!isOwner && isRegularUser && book.status === "available" && !isReservedByUser && (
-                    <Button onClick={handleReserve} className="action-button reserve">
-                      Забронировать
-                    </Button>
-                  )}
-
-                  {!isOwner && isRegularUser && isReservedByUser && (
-                    <div className="reservation-status">
-                      <p style={{ marginBottom: "10px", color: "#28a745" }}>
-                        Вы забронировали эту книгу
-                      </p>
-                    </div>
-                  )}
-
-                  {!isOwner &&
-                    isRegularUser &&
-                    book.status !== "available" &&
-                    !isReservedByUser && (
-                      <p style={{ color: "#dc3545", textAlign: "center" }}>
-                        Книга в данный момент недоступна
-                      </p>
-                    )}
-
-                  {!isOwner && canMarkDelete && (
-                    <Button onClick={handleMarkDelete} className="action-button delete">
-                      Пометить на удаление
-                    </Button>
-                  )}
-
-                  {!isOwner && canUnmarkDelete && (
-                    <Button onClick={handleUnmarkDelete} className="action-button edit">
-                      Снять пометку удаления
-                    </Button>
-                  )}
-
-                  {!isOwner && canDeleteHard && (
-                    <Button
-                      onClick={handleDelete}
-                      variant="secondary"
-                      className="action-button delete"
-                    >
-                      Удалить книгу
-                    </Button>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="book-info-section">
-            <div className="book-header">
-              <h1 className="book-title">{book.title}</h1>
-              <h2 className="book-author">{book.author}</h2>
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  marginTop: "10px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <span className={`status-badge ${book.status}`}>
-                  {book.status === "available"
-                    ? "Доступна"
-                    : book.status === "reserved"
-                    ? "Забронирована"
-                    : book.status === "marked_for_deletion"
-                    ? "Помечена на удаление"
-                    : "Недоступна"}
-                </span>
-
-                {book.reader_count > 0 && (
-                  <span
-                    style={{
-                      fontSize: "14px",
-                      color: "#666",
-                      backgroundColor: "#f8f9fa",
-                      padding: "4px 10px",
-                      borderRadius: "10px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                    }}
-                  >
-                    <span>📖 {book.reader_count} читателей</span>
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {book.tags && book.tags.length > 0 && (
-              <div className="info-container">
-                <h3 className="section1-title">Теги</h3>
-                <div className="tags-container" style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                  {book.tags.map((tag) => (
-                    <span
-                      key={tag.id}
-                      className="tag-item"
-                      style={{
-                        backgroundColor: "#e9ecef",
-                        padding: "4px 12px",
-                        borderRadius: "20px",
-                        fontSize: "14px",
-                        color: "#495057",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                      }}
-                      onClick={() => {
-                        navigate(`/catalog?tag=${tag.tag_name}`);
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#dee2e6";
-                        e.currentTarget.style.transform = "scale(1.02)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "#e9ecef";
-                        e.currentTarget.style.transform = "scale(1)";
-                      }}
-                    >
-                      <span>{tag.tag_name}</span>
-                    </span>
-                  ))}
                 </div>
               </div>
-            )}
 
-            <div className="info-container">
-              <h3 className="section1-title">Описание</h3>
-              <p className="book-description">{book.description}</p>
-            </div>
+              <div className="info-container">
+                <h3 className="section1-title">Владелец книги</h3>
+                <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                  <p className="book-owner" style={{ fontSize: "18px", fontWeight: 500 }}>
+                    {ownerInfo.name}
+                  </p>
 
-            <div className="info-container">
-              <h3 className="section1-title">Место хранения</h3>
-              <div className="location-content">
-                {book.locations && book.locations.length > 0 ? (
-                  <>
-                    <p className="book-location">
-                      {book.locations.map((loc, index) => {
-                        const text =
-                          typeof loc === "string"
-                            ? loc
-                            : [loc.name, loc.address].filter(Boolean).join(" — ") || "Место хранения";
+                  {ownerInfo.isCurrentUser && (
+                    <span
+                      style={{
+                        fontSize: "14px",
+                        backgroundColor: "#d4edda",
+                        padding: "4px 10px",
+                        borderRadius: "4px",
+                      }}
+                    >
+                      Вы являетесь владельцем
+                    </span>
+                  )}
+                </div>
 
-                        return (
-                          <React.Fragment key={index}>
-                            {text}
-                            {index < book.locations.length - 1 && ", "}
-                          </React.Fragment>
-                        );
-                      })}
-                    </p>
-                    <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-                      <Button onClick={handleMapClick} className="map-button">
-                        Посмотреть на карте
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <p className="book-location">Место хранения не указано</p>
+                {ownerInfo.email && !ownerInfo.isCurrentUser && (
+                  <p style={{ color: "#666", fontSize: "14px", marginTop: "5px" }}>
+                    Email: {ownerInfo.email}
+                  </p>
                 )}
               </div>
-            </div>
-
-            <div className="info-container">
-              <h3 className="section1-title">Владелец книги</h3>
-              <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                <p className="book-owner" style={{ fontSize: "18px", fontWeight: 500 }}>
-                  {ownerInfo.name}
-                </p>
-
-                {ownerInfo.isCurrentUser && (
-                  <span
-                    style={{
-                      fontSize: "14px",
-                      backgroundColor: "#d4edda",
-                      padding: "4px 10px",
-                      borderRadius: "4px",
-                    }}
-                  >
-                    Вы являетесь владельцем
-                  </span>
-                )}
-              </div>
-
-              {ownerInfo.email && !ownerInfo.isCurrentUser && (
-                <p style={{ color: "#666", fontSize: "14px", marginTop: "5px" }}>
-                  Email: {ownerInfo.email}
-                </p>
-              )}
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

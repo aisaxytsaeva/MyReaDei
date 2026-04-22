@@ -1,6 +1,13 @@
 from typing import List, Optional
 from pydantic import BaseModel, field_validator
 
+class LocationInfo(BaseModel):
+    id: int
+    name: str
+    address: str
+    
+    class Config:
+        from_attributes = True
 
 class TagInfo(BaseModel):
     id: int
@@ -21,7 +28,7 @@ class BookResponse(BaseModel):
     description: str
     cover_image_uri: str
     reader_count: int 
-    locations: List[str]
+    locations: List[LocationInfo]
     owner_id: int
     status: str
     tags: List[TagInfo] = [] 
@@ -31,16 +38,13 @@ class BookCreate(BaseModel):
     author: str
     description: str  
     cover_image_key: Optional[str] = None
-    location_ids: List[int]
-    tag_ids: Optional[List[int]] = []  
-    tag_names: Optional[List[str]] = []  
-
-    @field_validator('tag_ids', 'tag_names')
+    location_ids: List[int] = []  
+    tag_ids: List[TagInfo] = []   
+    
+    @field_validator('tag_ids')
     @classmethod
-    def validate_tags(cls, v, info):
-        if info.field_name == 'tag_ids' and v and len(v) > 10:
-            raise ValueError('Maximum 10 tags per book')
-        if info.field_name == 'tag_names' and v and len(v) > 10:
+    def validate_tag_ids(cls, v: List[TagInfo]) -> List[TagInfo]:
+        if len(v) > 10:
             raise ValueError('Maximum 10 tags per book')
         return v
 
@@ -51,19 +55,18 @@ class BookUpdate(BaseModel):
     cover_image_key: Optional[str] = None
     status: Optional[str] = None
     location_ids: Optional[List[int]] = None
-    tag_ids: Optional[List[int]] = None  
-    tag_names: Optional[List[str]] = None  
+    tag_ids: Optional[List[TagInfo]] = None 
 
     @field_validator("status")
     @classmethod
-    def validate_status(cls, v):
+    def validate_status(cls, v: str) -> str:
         if v and v not in ["available", "unavailable", "reserved", "marked_for_deletion"]:
-            raise ValueError("Status must be 'available', 'unavailable' or 'reserved' or 'marked_for_deletion'")
+            raise ValueError("Status must be 'available', 'unavailable', 'reserved', or 'marked_for_deletion'")
         return v
 
     @field_validator('tag_ids')
     @classmethod
-    def validate_tag_ids(cls, v):
+    def validate_tag_ids(cls, v: Optional[List[TagInfo]]) -> Optional[List[TagInfo]]:
         if v and len(v) > 10:
             raise ValueError('Maximum 10 tags per book')
         return v
@@ -83,3 +86,5 @@ class BookForDelete(BaseModel):
     cover_image_uri: str
     status: str
     tags: List[TagInfo] = [] 
+
+

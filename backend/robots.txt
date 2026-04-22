@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+Allow: /home
+Allow: /book/
+Allow: /search
+Disallow: /auth
+Disallow: /registration
+Disallow: /profile
+Disallow: /mybooks
+Disallow: /reservations
+Disallow: /add-book
+Disallow: /edit-book/
+Disallow: /admin
+Disallow: /moderator
+Disallow: /locations/create
+Disallow: /tags/create
+Disallow: /tags/edit/
+
+Sitemap: http://localhost:8000/sitemap.xml
+Host: http://localhost:8000
+
+Crawl-delay: 1

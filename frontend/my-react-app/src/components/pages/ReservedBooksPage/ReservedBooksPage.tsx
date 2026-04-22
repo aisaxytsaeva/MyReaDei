@@ -1,9 +1,9 @@
-// src/components/pages/ReservedBooksPage/ReservedBooksPage.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import Header from "../../UI/Header/Header";
 import BookCard from "../../UI/Book/BookCard";
+import { SeoManager } from "../../../components/SEO/SeoManager";
 import "./ReservedBooksPage.css";
 
 import { bookApi, type Id } from "../../../lib/api";
@@ -151,210 +151,242 @@ const ReservedBooksPage: React.FC = () => {
     void fetchReservations();
   };
 
-  // Если пользователь не авторизован
+  const getSeoTitle = () => {
+    return `Мои бронирования | MyReaDei`;
+  };
+
+  const getSeoDescription = () => {
+    return `Управление вашими бронированиями книг. Активных бронирований: ${reservations.length}`;
+  };
+
   if (!user || !token) {
     return (
-      <div className="reserved-books-page">
-        <Header />
-        <div
-          style={{
-            textAlign: "center",
-            padding: "100px 20px",
-            color: "#666",
-          }}
-        >
-          <h2>Пожалуйста, войдите в систему</h2>
-          <button
-            onClick={() => navigate("/auth")}
+      <>
+        <SeoManager 
+          title="Доступ запрещён"
+          description="Для просмотра бронирований необходимо авторизоваться"
+          noIndex={true}
+          noFollow={true}
+        />
+        <div className="reserved-books-page">
+          <Header />
+          <div
             style={{
-              padding: "10px 20px",
-              backgroundColor: "#007bff",
-              color: "white",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-              marginTop: "20px",
+              textAlign: "center",
+              padding: "100px 20px",
+              color: "#666",
             }}
-            type="button"
           >
-            Войти
-          </button>
+            <h2>Пожалуйста, войдите в систему</h2>
+            <button
+              onClick={() => navigate("/auth")}
+              style={{
+                padding: "10px 20px",
+                backgroundColor: "#ffffff",
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+                marginTop: "20px",
+              }}
+              type="button"
+            >
+              Войти
+            </button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (loading) {
     return (
-      <div className="reserved-books-page">
-        <Header />
-        <div
-          style={{
-            textAlign: "center",
-            padding: "100px 20px",
-            color: "#666",
-          }}
-        >
+      <>
+        <SeoManager 
+          title="Загрузка"
+          description="Загрузка ваших бронирований"
+          noIndex={true}
+          noFollow={true}
+        />
+        <div className="reserved-books-page">
+          <Header />
           <div
             style={{
-              display: "inline-block",
-              width: "40px",
-              height: "40px",
-              border: "4px solid #f3f3f3",
-              borderTop: "4px solid #3498db",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite",
-              marginBottom: "20px",
+              textAlign: "center",
+              padding: "100px 20px",
+              color: "#666",
             }}
-          />
-          <style>{`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}</style>
-          <p>Загрузка ваших бронирований...</p>
+          >
+            <div
+              style={{
+                display: "inline-block",
+                width: "40px",
+                height: "40px",
+                border: "4px solid #f3f3f3",
+                borderTop: "4px solid #3498db",
+                borderRadius: "50%",
+                animation: "spin 1s linear infinite",
+                marginBottom: "20px",
+              }}
+            />
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+            <p>Загрузка ваших бронирований...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="reserved-books-page">
-      <div className="fixed-header">
-        <Header />
-      </div>
-
-      {error && (
-        <div
-          style={{
-            margin: "20px auto",
-            maxWidth: "800px",
-            padding: "15px",
-            backgroundColor: "#f8d7da",
-            color: "#721c24",
-            borderRadius: "5px",
-            textAlign: "center",
-          }}
-        >
-          {error}
-          <button
-            onClick={handleRefresh}
-            style={{
-              marginLeft: "10px",
-              padding: "5px 10px",
-              backgroundColor: "#dc3545",
-              color: "white",
-              border: "none",
-              borderRadius: "3px",
-              cursor: "pointer",
-            }}
-            type="button"
-          >
-            Повторить
-          </button>
+    <>
+      <SeoManager 
+        title={getSeoTitle()}
+        description={getSeoDescription()}
+        noIndex={true}
+        noFollow={true}
+      />
+      
+      <div className="reserved-books-page">
+        <div className="fixed-header">
+          <Header />
         </div>
-      )}
 
-      <div className="main-content">
-        <div className="content-wrapper">
-          <div className="reserved-books-header">
-            <h1 className="page-title">Забронированные книги</h1>
+        {error && (
+          <div
+            style={{
+              margin: "20px auto",
+              maxWidth: "800px",
+              padding: "15px",
+              backgroundColor: "#f8d7da",
+              color: "#721c24",
+              borderRadius: "5px",
+              textAlign: "center",
+            }}
+          >
+            {error}
+            <button
+              onClick={handleRefresh}
+              style={{
+                marginLeft: "10px",
+                padding: "5px 10px",
+                backgroundColor: "#dc3545",
+                color: "white",
+                border: "none",
+                borderRadius: "3px",
+                cursor: "pointer",
+              }}
+              type="button"
+            >
+              Повторить
+            </button>
           </div>
+        )}
 
-          <div className="reserved-books-list">
-            {reservations.length > 0 ? (
-              reservations.map((reservation) => (
-                <div key={String(reservation.id)} className="reserved-book-item">
-                  <div className="book-info-section">
-                    <div
-                      className="book-card-container"
-                      onClick={() => handleBookClick(reservation.book_id)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <BookCard
-                        book={{
-                          id: reservation.book_id,
-                          title: reservation.title,
-                          author: reservation.author,
-                          cover_image_uri: reservation.cover_image_uri,
-                        }}
-                      />
-                    </div>
+        <div className="main-content">
+          <div className="content-wrapper">
+            <div className="reserved-books-header">
+              <h1 className="page-title">Забронированные книги</h1>
+            </div>
 
-                    <div className="reservation-details">
-                      <div className="reservation-meta">
-                        <span className="status-badge">
-                          {reservation.status === "active" ? "Активно" : "Ожидание"}
-                        </span>
-
-                        {reservation.book_owner && (
-                          <span className="owner-info">
-                            Владелец: {reservation.book_owner}
-                          </span>
-                        )}
+            <div className="reserved-books-list">
+              {reservations.length > 0 ? (
+                reservations.map((reservation) => (
+                  <div key={String(reservation.id)} className="reserved-book-item">
+                    <div className="book-info-section">
+                      <div
+                        className="book-card-container"
+                        onClick={() => handleBookClick(reservation.book_id)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        <BookCard
+                          book={{
+                            id: reservation.book_id,
+                            title: reservation.title,
+                            author: reservation.author,
+                            cover_image_uri: reservation.cover_image_uri,
+                          }}
+                        />
                       </div>
 
-                      {reservation.daysLeft !== null && (
-                        <div className="days-left-info">
-                          До конца бронирования осталось:{" "}
-                          <span
-                            className={`days-count ${
-                              reservation.daysLeft <= 3 ? "warning" : ""
-                            }`}
-                          >
-                            {reservation.daysLeft} {getDaysText(reservation.daysLeft)}
+                      <div className="reservation-details">
+                        <div className="reservation-meta">
+                          <span className="status-badge">
+                            {reservation.status === "active" ? "Активно" : "Ожидание"}
                           </span>
-                        </div>
-                      )}
 
-                      {reservation.start_date && reservation.end_date && (
-                        <div className="date-range">
-                          {formatDate(reservation.start_date)} —{" "}
-                          {formatDate(reservation.end_date)}
+                          {reservation.book_owner && (
+                            <span className="owner-info">
+                              Владелец: {reservation.book_owner}
+                            </span>
+                          )}
                         </div>
+
+                        {reservation.daysLeft !== null && (
+                          <div className="days-left-info">
+                            До конца бронирования осталось:{" "}
+                            <span
+                              className={`days-count ${
+                                reservation.daysLeft <= 3 ? "warning" : ""
+                              }`}
+                            >
+                              {reservation.daysLeft} {getDaysText(reservation.daysLeft)}
+                            </span>
+                          </div>
+                        )}
+
+                        {reservation.start_date && reservation.end_date && (
+                          <div className="date-range">
+                            {formatDate(reservation.start_date)} —{" "}
+                            {formatDate(reservation.end_date)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="action-buttons">
+                      {reservation.status === "active" ? (
+                        <button
+                          onClick={() => void handleReturnBook(reservation.id)}
+                          className="return-button"
+                          type="button"
+                        >
+                          Сдать книгу
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => void handleCancelReservation(reservation.id)}
+                          className="cancel-button"
+                          style={{ backgroundColor: "#ffc107", color: "#212529" }}
+                          type="button"
+                        >
+                          Отменить бронь
+                        </button>
                       )}
                     </div>
                   </div>
-
-                  <div className="action-buttons">
-                    {reservation.status === "active" ? (
-                      <button
-                        onClick={() => void handleReturnBook(reservation.id)}
-                        className="return-button"
-                        type="button"
-                      >
-                        Сдать книгу
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => void handleCancelReservation(reservation.id)}
-                        className="cancel-button"
-                        style={{ backgroundColor: "#ffc107", color: "#212529" }}
-                        type="button"
-                      >
-                        Отменить бронь
-                      </button>
-                    )}
-                  </div>
+                ))
+              ) : (
+                <div className="no-books-message">
+                  <p>У вас нет активных бронирований</p>
+                  <button
+                    onClick={handleBrowseBooks}
+                    className="browse-books-button"
+                    type="button"
+                  >
+                    Посмотреть доступные книги
+                  </button>
                 </div>
-              ))
-            ) : (
-              <div className="no-books-message">
-                <p>У вас нет активных бронирований</p>
-                <button
-                  onClick={handleBrowseBooks}
-                  className="browse-books-button"
-                  type="button"
-                >
-                  Посмотреть доступные книги
-                </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

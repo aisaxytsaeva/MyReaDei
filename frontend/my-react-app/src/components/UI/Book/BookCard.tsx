@@ -21,21 +21,17 @@ const BookCard: React.FC<Props> = ({ book }) => {
     navigate(`/book/${id}`);
   };
 
-  // Функция для получения правильного URL обложки
   const getImageUrl = (uri: string | null | undefined): string | null => {
     if (!uri) return null;
     
-    // Если URL уже полный (начинается с http:// или https://)
     if (uri.startsWith('http://') || uri.startsWith('https://')) {
       return uri;
     }
     
-    // Если относительный URL (начинается с /)
     if (uri.startsWith('/')) {
       return `http://localhost:8000${uri}`;
     }
     
-    // Если что-то другое
     return uri;
   };
 
@@ -52,6 +48,7 @@ const BookCard: React.FC<Props> = ({ book }) => {
             src={imageUrl}
             alt={title ?? "Book cover"}
             className={styles.coverImage}
+            loading="lazy"
             onError={(e) => {
               console.error("Failed to load image:", imageUrl);
               e.currentTarget.style.display = "none";

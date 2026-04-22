@@ -32,6 +32,24 @@ export type User = {
   [key: string]: unknown;
 };
 
+export type ExternalBook = {
+  title: string;
+  authors: string[];
+  description: string;
+  cover_image: string;
+  published_date: string;
+  categories: string[];
+  page_count: number;
+  language: string;
+  google_books_id: string;
+};
+
+export type ExternalSearchResponse = {
+  total_items: number;
+  items: ExternalBook[];
+  error: string | null;
+};
+
 export type BookStatus = "available" | "reserved" | "unavailable" | string;
 
 export type Location = {
@@ -246,7 +264,6 @@ export const bookApi = {
     fd.append("author", bookData.author);
     fd.append("description", bookData.description ?? "");
 
-    // location_ids - каждый ID отдельным полем
     for (const id of bookData.location_ids) {
       fd.append("location_ids", String(id));
     }
@@ -267,35 +284,36 @@ export const bookApi = {
   },
 
   updateBook: (id: Id, bookData: UpdateBookPayload): Promise<AxiosResponse<Book>> => {
-  const fd = new FormData();
+    const fd = new FormData();
 
-  if (bookData.title) fd.append("title", bookData.title);
-  if (bookData.author) fd.append("author", bookData.author);
-  if (bookData.description) fd.append("description", bookData.description);
-  if (bookData.status) fd.append("status", bookData.status);
+    if (bookData.title) fd.append("title", bookData.title);
+    if (bookData.author) fd.append("author", bookData.author);
+    if (bookData.description) fd.append("description", bookData.description);
+    if (bookData.status) fd.append("status", bookData.status);
 
-  if (bookData.location_ids && bookData.location_ids.length > 0) {
-    for (const id of bookData.location_ids) {
-      fd.append("location_ids", String(id));
+    if (bookData.location_ids && bookData.location_ids.length > 0) {
+      for (const id of bookData.location_ids) {
+        fd.append("location_ids", String(id));
+      }
     }
-  }
 
-  if (bookData.tag_ids && bookData.tag_ids.length > 0) {
-    for (const id of bookData.tag_ids) {
-      fd.append("tag_ids", String(id));
+    if (bookData.tag_ids && bookData.tag_ids.length > 0) {
+      for (const id of bookData.tag_ids) {
+        fd.append("tag_ids", String(id));
+      }
     }
-  }
 
-  if (bookData.cover_image) {
-    fd.append("cover_image", bookData.cover_image);
-  }
+    if (bookData.cover_image) {
+      fd.append("cover_image", bookData.cover_image);
+    }
 
-  return api.put<Book>(`/books/${id}`, fd, {
-    headers: { "Content-Type": undefined as any },
-  });
-},
-
-  deleteBook: (id: Id): Promise<AxiosResponse<void>> => api.delete<void>(`/books/${id}`),
+    return api.put<Book>(`/books/${id}`, fd, {
+      headers: { "Content-Type": undefined as any },
+    });
+  },
+  searchExternalBooks: (query: string): Promise<AxiosResponse<ExternalSearchResponse>> =>
+    api.get<ExternalSearchResponse>("/books/external/search", { params: { query } }),
+    deleteBook: (id: Id): Promise<AxiosResponse<void>> => api.delete<void>(`/books/${id}`),
 
   uploadCover: (bookId: Id, coverImage: File | Blob): Promise<AxiosResponse<Book>> => {
     const formData = new FormData();
@@ -377,6 +395,9 @@ export const bookApi = {
 
   returnBook: (reservationId: Id): Promise<AxiosResponse<void>> =>
     api.delete<void>(`/reservations/${reservationId}`),
+
+  confirmReservation: (reservationId: number): Promise<AxiosResponse<void>> =>
+    api.post<void>(`/reservations/${reservationId}/confirm`),
 
   cancelReservation: (reservationId: Id): Promise<AxiosResponse<void>> =>
     api.post<void>(`/reservations/${reservationId}/cancel`),

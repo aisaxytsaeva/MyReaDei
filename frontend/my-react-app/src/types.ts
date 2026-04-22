@@ -1,6 +1,23 @@
 import { Id, Location, Tag, type Book } from "./lib/api";
 
 
+export type ProfileStats = {
+  book_added?: number;
+  book_borrowed?: number;
+  [key: string]: unknown;
+};
+
+export type BookCardItem = {
+  id: Id;
+  title: string;
+  author: string;
+  cover_image_uri?: string | null;
+};
+
+export type ReservationCardItem = BookCardItem & {
+  reservation_status?: "active" | "pending" | string;
+};
+
 export type FormState = {
   title: string;
   author: string;
@@ -70,4 +87,14 @@ export type CardBook = {
   title: string;
   author: string;
   cover_image_uri?: string | null;
+};
+
+export type SeoManagerProps = {
+  title: string;
+  description: string;
+  canonicalUrl?: string;
+  noIndex?: boolean;      
+  noFollow?: boolean;     
+  ogImage?:  string | null;
+  ogType?: 'website' | 'article' | 'book';
 };

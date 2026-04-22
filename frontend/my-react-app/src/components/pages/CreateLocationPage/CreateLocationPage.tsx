@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../UI/Header/Header";
 import Button from "../../UI/Button/Button";
+import { SeoManager } from "../../../components/SEO/SeoManager";
 import { useAuth } from "../../../context/AuthContext";
 import { bookApi, type CreateLocationPayload } from "../../../lib/api";
 import "./CreateLocationPage.css";
@@ -63,87 +64,93 @@ const CreateLocationPage: React.FC = () => {
   const handleCancel = () => navigate(-1);
 
   return (
-    
-    <div className="cl-page">
-      <Header />
-        
+    <>
+      <SeoManager 
+        title="Создание локации"
+        description="Добавьте новое место для обмена книгами"
+        noIndex={true}
+        noFollow={true}
+      />
       
+      <div className="cl-page">
+        <Header />
 
-      <div className="cl-content">
-        <div className="cl-wrapper">
-          <div className="cl-pageHeader">
-            <h1 className="cl-title">Создать локацию</h1>
-            <div className="cl-subtitle">
-              Укажите место, где можно забрать/оставить книги
-            </div>
-          </div>
-
-          {!user || !token ? (
-            <div className="cl-authBox">
-              <h2>Нужна авторизация</h2>
-              <p>Чтобы создавать локации, войдите в аккаунт.</p>
-              <Button onClick={() => navigate("/auth")} style={{ marginTop: "20px" }}>
-                Войти
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="cl-form">
-              <div className="cl-section">
-                <h3 className="cl-sectionTitle">Название</h3>
-                <input
-                  type="text"
-                  className="cl-input"
-                  placeholder="Например: Библиотека на Ленина"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={loading}
-                  required
-                />
+        <div className="cl-content">
+          <div className="cl-wrapper">
+            <div className="cl-pageHeader">
+              <h1 className="cl-title">Создать локацию</h1>
+              <div className="cl-subtitle">
+                Укажите место, где можно забрать/оставить книги
               </div>
+            </div>
 
-              <div className="cl-section">
-                <h3 className="cl-sectionTitle">Адрес *</h3>
-                <input
-                  type="text"
-                  className="cl-input"
-                  placeholder="Например: ул. Ленина, 10"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  disabled={loading}
-                  required
-                />
+            {!user || !token ? (
+              <div className="cl-authBox">
+                <h2>Нужна авторизация</h2>
+                <p>Чтобы создавать локации, войдите в аккаунт.</p>
+                <Button onClick={() => navigate("/auth")} style={{ marginTop: "20px" }}>
+                  Войти
+                </Button>
               </div>
-
-              {error && (
-                <div className="cl-error">
-                  <p>{error}</p>
+            ) : (
+              <form onSubmit={handleSubmit} className="cl-form">
+                <div className="cl-section">
+                  <label className="cl-sectionTitle">Название</label>
+                  <input
+                    type="text"
+                    className="cl-input"
+                    placeholder="Например: Библиотека на Ленина"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={loading}
+                    required
+                  />
                 </div>
-              )}
 
-              <div className="cl-actions">
-                <Button
-                  type="button"
-                  onClick={handleCancel}
-                  variant="secondary"
-                  className="cl-btnCancel"
-                  disabled={loading}
-                >
-                  Отмена
-                </Button>
+                <div className="cl-section">
+                  <label className="cl-sectionTitle">Адрес *</label>
+                  <input
+                    type="text"
+                    className="cl-input"
+                    placeholder="Например: ул. Ленина, 10"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                </div>
 
-                <Button
-                  type="submit"
-                  className="cl-btnSubmit"
-                  disabled={loading}
-                >
-                  {loading ? "Сохранение..." : "Создать"}
-                </Button>
-              </div>
-            </form>
-          )}
+                {error && (
+                  <div className="cl-error">
+                    <p>{error}</p>
+                  </div>
+                )}
+
+                <div className="cl-actions">
+                  <Button
+                    type="button"
+                    onClick={handleCancel}
+                    variant="secondary"
+                    className="cl-btnCancel"
+                    disabled={loading}
+                  >
+                    Отмена
+                  </Button>
+
+                  <Button
+                    type="submit"
+                    className="cl-btnSubmit"
+                    disabled={loading}
+                  >
+                    {loading ? "Сохранение..." : "Создать"}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

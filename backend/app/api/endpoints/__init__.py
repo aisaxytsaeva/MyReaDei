@@ -6,6 +6,7 @@ from .reservation import router as reservation_router
 from .statistics import router as statitics_router
 from .admin_roles import router as admin_roles_router
 from .tags import router as tags_router
+from .seo import router as seo_router
 
 
 
@@ -17,6 +18,7 @@ __all__ = [
     "reservation_router",
     "statitics_router",
     "admin_roles_router",
-    "tags_router"
+    "tags_router",
+    "seo_router"
 
 ]

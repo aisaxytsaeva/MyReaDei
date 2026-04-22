@@ -37,7 +37,8 @@ const App: React.FC = () => {
             <Route path="/edit-book/:id" element={<AddEditBookPage />} />
             <Route path="/locations/create" element={<CreateLocationPage/>} />
             <Route path="/tags/create" element = {<CreateEditTagPage/>} />
-            <Route path="/tags/edit/:id" element={<CreateEditTagPage/>} />            <Route path="/admin" element={<AdminPage/>} />
+            <Route path="/tags/edit/:id" element={<CreateEditTagPage/>} />            
+            <Route path="/admin" element={<AdminPage/>} />
             <Route path="/moderator" element={<ModeratorPage />} />
           </Routes>
         </div>

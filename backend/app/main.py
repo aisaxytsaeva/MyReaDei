@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.api.endpoints import auth_router, books_router, users_router, locations_router, reservation_router, statitics_router, admin_roles_router, tags_router
+from app.api.endpoints import auth_router, books_router, users_router, locations_router, reservation_router, statitics_router, admin_roles_router, tags_router, seo_router
 from app.core.db import Base, engine
 import time
 import logging
@@ -84,6 +84,7 @@ app.include_router(locations_router, prefix="", tags=["locations"])
 app.include_router(reservation_router, prefix="", tags=["reservations"]) 
 app.include_router(statitics_router, prefix="", tags=["statistics"]) 
 app.include_router(admin_roles_router, prefix="", tags=["admin"]) 
+app.include_router(seo_router, prefix="", tags=["seo"])
 
 
 
