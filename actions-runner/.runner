@@ -1,0 +1,11 @@
+﻿{
+  "agentId": 2,
+  "agentName": "windows-runner",
+  "poolId": 1,
+  "poolName": "Default",
+  "serverUrl": "https://pipelinesghubeus22.actions.githubusercontent.com/yxKG5WSB7LrbJx0HHv2Rq2MkebPKbngnfSfIbLFxkdeagd28Id/",
+  "gitHubUrl": "https://github.com/aisaxytsaeva/MyReaDei",
+  "workFolder": "_work",
+  "useV2Flow": true,
+  "serverUrlV2": "https://broker.actions.githubusercontent.com/"
+}
