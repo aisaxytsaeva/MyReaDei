@@ -7,6 +7,8 @@ from app.models.users import User
 from app.core.permissions import UserRole
 
 
+def count_users(db: Session) -> int:
+    return db.query(User).count()
 
 def list_users(db: Session, skip: int = 0, limit: int = 100) -> List[User]:
     return db.query(User).offset(skip).limit(limit).all()

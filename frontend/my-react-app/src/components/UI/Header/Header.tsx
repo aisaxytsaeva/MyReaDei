@@ -65,6 +65,7 @@ const Header: React.FC = () => {
               onClick={handleProfileClick}
               aria-label="Профиль"
               type="button"
+              data-testid="user-menu"
             >
               <img
                 src="/assets/profile.svg"
@@ -79,6 +80,7 @@ const Header: React.FC = () => {
                 onClick={handleLogin}
                 className="app-header__loginBtn"
                 type="button"
+                data-testid="login-button"
               >
                 Войти
               </button>

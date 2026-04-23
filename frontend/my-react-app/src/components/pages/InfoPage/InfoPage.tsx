@@ -383,7 +383,7 @@ const InfoPage: React.FC = () => {
               <div className="book-cover">
                 {book.cover_image_uri ? (
                   <img
-                    src={getImageUrl(book.cover_image_uri)}  // Исправлено!
+                    src={getImageUrl(book.cover_image_uri)}  
                     alt={book.title}
                     className="book-image"
                     onError={(e: React.SyntheticEvent<HTMLImageElement>) => {

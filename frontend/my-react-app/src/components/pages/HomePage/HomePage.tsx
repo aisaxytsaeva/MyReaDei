@@ -159,147 +159,157 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <>
-    
-    
-      <div className="page">
-        <Header />
+    <div className="page" data-testid="home-page">
+      <Header />
 
-        <div className="search-container">
-          <SearchBar
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onSearchSubmit={handleSearch}
-          />
-        </div>
+      <div className="search-container" data-testid="search-container">
+        <SearchBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSearchSubmit={handleSearch}
+        />
+      </div>
 
-        <button
-          onClick={() => setShowTagFilter(!showTagFilter)}
-          className={`filter-toggle-btn ${showTagFilter ? 'active' : ''}`}
-        >
-          {showTagFilter ? " Скрыть фильтр" : " Фильтр по тегам"}
-        </button>
+      <button
+        onClick={() => setShowTagFilter(!showTagFilter)}
+        className={`filter-toggle-btn ${showTagFilter ? 'active' : ''}`}
+        data-testid="filter-toggle-btn"
+      >
+        {showTagFilter ? "🔽 Скрыть фильтр" : "🏷️ Фильтр по тегам"}
+      </button>
 
-    
-        {showTagFilter && (
-          <div className="tags-filter-panel">
-            <div className="tags-filter-header">
-              <h3 className="tags-filter-title">
-                {selectedTagIds.length > 0 
-                  ? `Выбрано тегов: ${selectedTagIds.length}` 
-                  : "Выберите теги для фильтрации"}
-                {selectedTagIds.length > 0 && (
-                  <span className="selected-count">{selectedTagIds.length}</span>
-                )}
-              </h3>
+      {showTagFilter && (
+        <div className="tags-filter-panel" data-testid="tags-filter-panel">
+          <div className="tags-filter-header">
+            <h3 className="tags-filter-title" data-testid="tags-filter-title">
+              {selectedTagIds.length > 0 
+                ? `Выбрано тегов: ${selectedTagIds.length}` 
+                : "Выберите теги для фильтрации"}
               {selectedTagIds.length > 0 && (
+                <span className="selected-count" data-testid="selected-count">
+                  {selectedTagIds.length}
+                </span>
+              )}
+            </h3>
+            {selectedTagIds.length > 0 && (
+              <button
+                onClick={handleClearTags}
+                className="clear-tags-btn"
+                data-testid="clear-tags-btn"
+              >
+                Сбросить
+              </button>
+            )}
+          </div>
+
+          {loadingTags ? (
+            <div className="loading-container" data-testid="tags-loading">
+              <div className="loading-spinner" />
+            </div>
+          ) : allTags.length === 0 ? (
+            <div className="empty-state" data-testid="no-tags">
+              <p>Нет доступных тегов</p>
+              {isAuthenticated && (
                 <button
-                  onClick={handleClearTags}
-                  className="clear-tags-btn"
+                  onClick={handleGoToTagManagement}
+                  className="reset-filter-btn"
+                  style={{ marginTop: "10px" }}
+                  data-testid="create-tag-btn"
                 >
-                  Сбросить
+                  Создать тег
                 </button>
               )}
             </div>
-
-            {loadingTags ? (
-              <div className="loading-container">
-                <div className="loading-spinner" />
-              </div>
-            ) : allTags.length === 0 ? (
-              <div className="empty-state">
-                <p>Нет доступных тегов</p>
-                {isAuthenticated && (
-                  <button
-                    onClick={handleGoToTagManagement}
-                    className="reset-filter-btn"
-                    style={{ marginTop: "10px" }}
-                  >
-                    Создать тег
-                  </button>
-                )}
-              </div>
-            ) : (
-              <>
-                <div className="tags-grid">
-                  {allTags.map((tag) => (
-                    <label
-                      key={tag.id}
-                      className={`tag-checkbox-label ${selectedTagIds.includes(tag.id) ? 'selected' : ''}`}
-                      onClick={() => handleTagToggle(tag.id)}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedTagIds.includes(tag.id)}
-                        onChange={() => {}}
-                      />
-                      <span className="tag-name">{tag.tag_name}</span>
-                      {selectedTagIds.includes(tag.id) && (
-                        <span className="tag-check">✓</span>
-                      )}
-                    </label>
-                  ))}
-                </div>
-
-                {selectedTagIds.length > 0 && (
-                  <div className={`filter-info ${filtering ? 'loading' : ''}`}>
-                    {filtering ? "Поиск книг..." : `Найдено книг: ${filteredBooks.length}`}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {error && (
-          <div className="error-message">
-            {error} (используются демо-данные)
-          </div>
-        )}
-
-        <section className="popular-books-section">
-          <h2 className="section-title">
-            {loading || filtering
-              ? "Загрузка..." 
-              : selectedTagIds.length > 0
-              ? `Книги по выбранным тегам (${filteredBooks.length})`
-              : "Что популярно сейчас!"}
-          </h2>
-
-          {loading ? (
-            <div className="loading-container">
-              <div className="loading-spinner" />
-            </div>
-          ) : filteredBooks.length === 0 && selectedTagIds.length > 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">😕</div>
-              <h3 className="empty-state-title">Книги не найдены</h3>
-              <p className="empty-state-text">
-                Книги с выбранными тегами не найдены
-              </p>
-              <button
-                onClick={handleClearTags}
-                className="reset-filter-btn"
-              >
-                Сбросить фильтр
-              </button>
-            </div>
           ) : (
-            <div className="books-grid">
-              {filteredBooks.map((book) => (
-                <div
-                  key={String(book.id)}
-                  onClick={() => handleBookClick(book.id)}
-                  className="book-card-wrapper"
+            <>
+              <div className="tags-grid" data-testid="tags-grid">
+                {allTags.map((tag) => (
+                  <label
+                    key={tag.id}
+                    className={`tag-checkbox-label ${selectedTagIds.includes(tag.id) ? 'selected' : ''}`}
+                    onClick={() => handleTagToggle(tag.id)}
+                    data-testid={`tag-${tag.id}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedTagIds.includes(tag.id)}
+                      onChange={() => {}}
+                      data-testid={`tag-checkbox-${tag.id}`}
+                    />
+                    <span className="tag-name" data-testid={`tag-name-${tag.id}`}>
+                      {tag.tag_name}
+                    </span>
+                    {selectedTagIds.includes(tag.id) && (
+                      <span className="tag-check" data-testid={`tag-check-${tag.id}`}>✓</span>
+                    )}
+                  </label>
+                ))}
+              </div>
+
+              {selectedTagIds.length > 0 && (
+                <div 
+                  className={`filter-info ${filtering ? 'loading' : ''}`}
+                  data-testid="filter-info"
                 >
-                  <BookCard book={book} />
+                  {filtering ? "Поиск книг..." : `Найдено книг: ${filteredBooks.length}`}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
-        </section>
-      </div>
-    </>
+        </div>
+      )}
+
+      {error && (
+        <div className="error-message" data-testid="error-message">
+          {error} (используются демо-данные)
+        </div>
+      )}
+
+      <section className="popular-books-section" data-testid="popular-books-section">
+        <h2 className="section-title" data-testid="section-title">
+          {loading || filtering
+            ? "Загрузка..." 
+            : selectedTagIds.length > 0
+            ? `Книги по выбранным тегам (${filteredBooks.length})`
+            : "Что популярно сейчас!"}
+        </h2>
+
+        {loading ? (
+          <div className="loading-container" data-testid="loading-container">
+            <div className="loading-spinner" />
+          </div>
+        ) : filteredBooks.length === 0 && selectedTagIds.length > 0 ? (
+          <div className="empty-state" data-testid="empty-state">
+            <div className="empty-state-icon">😕</div>
+            <h3 className="empty-state-title" data-testid="empty-state-title">Книги не найдены</h3>
+            <p className="empty-state-text" data-testid="empty-state-text">
+              Книги с выбранными тегами не найдены
+            </p>
+            <button
+              onClick={handleClearTags}
+              className="reset-filter-btn"
+              data-testid="reset-filter-btn"
+            >
+              Сбросить фильтр
+            </button>
+          </div>
+        ) : (
+          <div className="books-grid" data-testid="books-grid">
+            {filteredBooks.map((book) => (
+              <div
+                key={String(book.id)}
+                onClick={() => handleBookClick(book.id)}
+                className="book-card-wrapper"
+                data-testid={`book-card-${book.id}`}
+                data-book-id={book.id}
+              >
+                <BookCard book={book} />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
   );
 };
 

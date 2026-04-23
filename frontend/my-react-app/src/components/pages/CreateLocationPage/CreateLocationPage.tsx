@@ -40,19 +40,11 @@ const CreateLocationPage: React.FC = () => {
       };
 
       await bookApi.createLocation(payload);
-
       alert("Локация отправлена на создание!");
       navigate("/home");
     } catch (err: any) {
-      const detail =
-        err?.response?.data?.detail ??
-        err?.message ??
-        "Ошибка при создании локации";
-
-      const msg = Array.isArray(detail)
-        ? detail.map((x: any) => x?.msg || JSON.stringify(x)).join(", ")
-        : String(detail);
-
+      const detail = err?.response?.data?.detail ?? err?.message ?? "Ошибка при создании локации";
+      const msg = Array.isArray(detail) ? detail.map((x: any) => x?.msg || JSON.stringify(x)).join(", ") : String(detail);
       setError(msg);
       alert(`Ошибка: ${msg}`);
     } finally {
@@ -63,88 +55,88 @@ const CreateLocationPage: React.FC = () => {
   const handleCancel = () => navigate(-1);
 
   return (
-    <>
-    
-      
-      <div className="cl-page">
-        <Header />
+    <div className="cl-page">
+      <Header />
 
-        <div className="cl-content">
-          <div className="cl-wrapper">
-            <div className="cl-pageHeader">
-              <h1 className="cl-title">Создать локацию</h1>
-              <div className="cl-subtitle">
-                Укажите место, где можно забрать/оставить книги
-              </div>
+      <div className="cl-content">
+        <div className="cl-wrapper">
+          <div className="cl-pageHeader">
+            <h1 className="cl-title">Создать локацию</h1>
+            <div className="cl-subtitle">
+              Укажите место, где можно забрать/оставить книги
             </div>
+          </div>
 
-            {!user || !token ? (
-              <div className="cl-authBox">
-                <h2>Нужна авторизация</h2>
-                <p>Чтобы создавать локации, войдите в аккаунт.</p>
-                <Button onClick={() => navigate("/auth")} style={{ marginTop: "20px" }}>
-                  Войти
+          {!user || !token ? (
+            <div className="cl-authBox">
+              <h2>Нужна авторизация</h2>
+              <p>Чтобы создавать локации, войдите в аккаунт.</p>
+              <Button onClick={() => navigate("/auth")} style={{ marginTop: "20px" }}>
+                Войти
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="cl-form">
+              <div className="cl-section">
+                <label className="cl-sectionTitle">Название *</label>
+                <input
+                  type="text"
+                  className="cl-input cl-input-name"
+                  placeholder="Например: Библиотека на Ленина"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={loading}
+                  required
+                  data-testid="location-name"
+                />
+              </div>
+
+              <div className="cl-section">
+                <label className="cl-sectionTitle">Адрес *</label>
+                <input
+                  type="text"
+                  className="cl-input cl-input-address"
+                  placeholder="Например: ул. Ленина, 10"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  disabled={loading}
+                  required
+                  data-testid="location-address"
+                />
+              </div>
+
+              {error && (
+                <div className="cl-error" data-testid="location-error">
+                  <p>{error}</p>
+                </div>
+              )}
+
+              <div className="cl-actions">
+                <Button
+                  type="button"
+                  onClick={handleCancel}
+                  variant="secondary"
+                  className="cl-btnCancel"
+                  disabled={loading}
+                  data-testid="location-cancel"
+                >
+                  Отмена
+                </Button>
+
+                <Button
+                  type="submit"
+                  className="cl-btnSubmit"
+                  disabled={loading}
+                  data-testid="location-submit"
+                >
+                  {loading ? "Сохранение..." : "Создать"}
                 </Button>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="cl-form">
-                <div className="cl-section">
-                  <label className="cl-sectionTitle">Название</label>
-                  <input
-                    type="text"
-                    className="cl-input"
-                    placeholder="Например: Библиотека на Ленина"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={loading}
-                    required
-                  />
-                </div>
-
-                <div className="cl-section">
-                  <label className="cl-sectionTitle">Адрес *</label>
-                  <input
-                    type="text"
-                    className="cl-input"
-                    placeholder="Например: ул. Ленина, 10"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    disabled={loading}
-                    required
-                  />
-                </div>
-
-                {error && (
-                  <div className="cl-error">
-                    <p>{error}</p>
-                  </div>
-                )}
-
-                <div className="cl-actions">
-                  <Button
-                    type="button"
-                    onClick={handleCancel}
-                    variant="secondary"
-                    className="cl-btnCancel"
-                    disabled={loading}
-                  >
-                    Отмена
-                  </Button>
-
-                  <Button
-                    type="submit"
-                    className="cl-btnSubmit"
-                    disabled={loading}
-                  >
-                    {loading ? "Сохранение..." : "Создать"}
-                  </Button>
-                </div>
-              </form>
-            )}
-          </div>
+            </form>
+          )}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

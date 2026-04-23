@@ -238,7 +238,7 @@ async def update_book(
     description: Optional[str] = Form(None, description="Описание книги"),
     location_ids: Optional[str] = Form(None, description="ID локаций "),
     tag_ids: Optional[str] = Form(None, description="ID тегов)"),
-    status: Optional[str] = Form(None, description="Статус книги"),
+    book_status: Optional[str] = Form(None, description="Статус книги"),
     cover_image: Optional[UploadFile] = File(None, description="Новая обложка книги"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -255,6 +255,7 @@ async def update_book(
         )
     
     cover_image_key = None
+    old_cover_key = book.cover_image_key
     new_cover_uploaded = False
     
     def parse_ids(ids_str: Optional[str]) -> Optional[List[int]]:
@@ -283,8 +284,8 @@ async def update_book(
             update_dict["author"] = author
         if description is not None:
             update_dict["description"] = description
-        if status is not None:
-            update_dict["status"] = status
+        if book_status is not None:
+            update_dict["status"] = book_status
         if new_cover_uploaded:
             update_dict["cover_image_key"] = cover_image_key
         if parsed_tag_ids is not None:
@@ -305,6 +306,21 @@ async def update_book(
         
         book_with_details = books_crud.get_book_with_details(db, book_id)
         
+        # Если обложка обновлена успешно, удаляем старую
+        if new_cover_uploaded and old_cover_key:
+            try:
+                minio_service.delete_file(old_cover_key)
+                logger.info(f"Old cover deleted: {old_cover_key}")
+            except Exception as e:
+                logger.warning(f"Failed to delete old cover: {e}")
+        
+        # Получаем URL обложки безопасно
+        cover_url = None
+        if hasattr(book_with_details, 'cover_image_uri'):
+            cover_url = book_with_details.cover_image_uri
+        elif isinstance(book_with_details, dict):
+            cover_url = book_with_details.get('cover_image_uri')
+        
         response_data = {
             "message": "Book updated successfully",
             "book": book_with_details
@@ -312,7 +328,7 @@ async def update_book(
         
         if new_cover_uploaded:
             response_data["cover_key"] = cover_image_key
-            response_data["cover_url"] = book_with_details.get("cover_image_uri")
+            response_data["cover_url"] = cover_url
         
         return response_data
         

@@ -22,8 +22,8 @@ const SearchBar: React.FC<Props> = ({
   };
 
   return (
-    <section className="search-bar-section">
-      <form onSubmit={handleSubmit} className="search-form">
+    <section className="search-bar-section" data-testid="search-bar-section">
+      <form onSubmit={handleSubmit} className="search-form" data-testid="search-form">
         <div className="search-input-container">
           <input
             type="text"
@@ -31,9 +31,10 @@ const SearchBar: React.FC<Props> = ({
             onChange={handleChange}
             placeholder="Введите свой запрос"
             className="search-input"
+            data-testid="search-input"
           />
 
-          <button type="submit" className="search-button">
+          <button type="submit" className="search-button" data-testid="search-button">
             <img
               src="/assets/search.svg"
               alt="Поиск"

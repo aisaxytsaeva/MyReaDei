@@ -66,10 +66,10 @@ const CreateEditTagPage: React.FC = () => {
 
     try {
       if (isEditMode && id) {
-        const payload: { name?: string; description?: string } = {};
+        const payload: { tag_name?: string; description?: string } = {};
         
         if (name.trim() !== tagData?.tag_name) {
-          payload.name = name.trim();
+          payload.tag_name = name.trim();
         }
         if (description.trim() !== (tagData?.description || "")) {
           payload.description = description.trim() || undefined;
@@ -77,12 +77,13 @@ const CreateEditTagPage: React.FC = () => {
         
         if (Object.keys(payload).length === 0) {
           alert("Нет изменений для сохранения");
-          navigate("/moderator", { replace: true });
+          navigate("/moderator", { replace: true, state: { fromEdit: true } });
           return;
         }
         
         await bookApi.updateTag(Number(id), payload);
         alert("Тег успешно обновлён!");
+        navigate("/moderator", { replace: true, state: { fromEdit: true } });
       } else {
         const payload: CreateTagPayload = {
           tag_name: name.trim(),
@@ -91,9 +92,8 @@ const CreateEditTagPage: React.FC = () => {
         
         await bookApi.createTag(payload);
         alert("Тег успешно создан!");
+        navigate("/moderator", { replace: true, state: { fromCreate: true } });
       }
-      
-      navigate("/moderator", { replace: true });
     } catch (err: any) {
       const detail = err?.response?.data?.detail ?? err?.message ?? "Ошибка при сохранении тега";
       const msg = Array.isArray(detail)
@@ -110,114 +110,106 @@ const CreateEditTagPage: React.FC = () => {
     if (isEditMode && id) {
       navigate("/moderator", { replace: true });
     } else {
-      navigate(-1);
+      navigate("/moderator", { replace: true });
     }
   };
 
-
   if (loadingData && isEditMode) {
     return (
-      <>
-       
-        <div className="at-page">
-          <Header />
-          <div className="at-loading">
-            <div className="at-spinner"></div>
-            <p>Загрузка данных тега...</p>
-          </div>
+      <div className="at-page">
+        <Header />
+        <div className="at-loading">
+          <div className="at-spinner"></div>
+          <p>Загрузка данных тега...</p>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
-      
-      
-      <div className="at-page">
-        <Header />
+    <div className="at-page">
+      <Header />
 
-        <div className="at-content">
-          <div className="at-wrapper">
-            <div className="at-pageHeader">
-              <h1 className="at-title">
-                {isEditMode ? "Редактировать тег" : "Создать тег"}
-              </h1>
-              <div className="at-subtitle">
-                {isEditMode 
-                  ? "Измените информацию о теге" 
-                  : "Добавьте новый тег для категоризации книг"}
-              </div>
+      <div className="at-content">
+        <div className="at-wrapper">
+          <div className="at-pageHeader">
+            <h1 className="at-title">
+              {isEditMode ? "Редактировать тег" : "Создать тег"}
+            </h1>
+            <div className="at-subtitle">
+              {isEditMode 
+                ? "Измените информацию о теге" 
+                : "Добавьте новый тег для категоризации книг"}
             </div>
+          </div>
 
-            {!user || !token ? (
-              <div className="at-authBox">
-                <h2>Нужна авторизация</h2>
-                <p>Чтобы {isEditMode ? "редактировать" : "создавать"} теги, войдите в аккаунт.</p>
-                <Button onClick={() => navigate("/auth")} style={{ marginTop: "20px" }}>
-                  Войти
+          {!user || !token ? (
+            <div className="at-authBox">
+              <h2>Нужна авторизация</h2>
+              <p>Чтобы {isEditMode ? "редактировать" : "создавать"} теги, войдите в аккаунт.</p>
+              <Button onClick={() => navigate("/auth")} style={{ marginTop: "20px" }}>
+                Войти
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="at-form">
+              <div className="at-section">
+                <label className="at-sectionTitle">Название тега *</label>
+                <input
+                  type="text"
+                  className="at-input"
+                  placeholder="Например: Фантастика, Детектив, Классика..."
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+              </div>
+
+              <div className="at-section">
+                <label className="at-sectionTitle">Описание</label>
+                <textarea
+                  className="at-textarea"
+                  placeholder="Добавьте описание тега"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  disabled={loading}
+                  rows={4}
+                />
+              </div>
+
+              {error && (
+                <div className="at-error">
+                  <p>{error}</p>
+                </div>
+              )}
+
+              <div className="at-actions">
+                <Button
+                  type="button"
+                  onClick={handleCancel}
+                  variant="secondary"
+                  className="at-btnCancel"
+                  disabled={loading}
+                >
+                  Отмена
+                </Button>
+
+                <Button
+                  type="submit"
+                  className="at-btnSubmit"
+                  disabled={loading}
+                >
+                  {loading 
+                    ? (isEditMode ? "Сохранение..." : "Создание...") 
+                    : (isEditMode ? "Сохранить изменения" : "Создать тег")}
                 </Button>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="at-form">
-                <div className="at-section">
-                  <label className="at-sectionTitle">Название тега *</label>
-                  <input
-                    type="text"
-                    className="at-input"
-                    placeholder="Например: Фантастика, Детектив, Классика..."
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={loading}
-                    required
-                  />
-                </div>
-
-                <div className="at-section">
-                  <label className="at-sectionTitle">Описание</label>
-                  <textarea
-                    className="at-textarea"
-                    placeholder="Добавьте описание тега"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    disabled={loading}
-                    rows={4}
-                  />
-                </div>
-
-                {error && (
-                  <div className="at-error">
-                    <p>{error}</p>
-                  </div>
-                )}
-
-                <div className="at-actions">
-                  <Button
-                    type="button"
-                    onClick={handleCancel}
-                    variant="secondary"
-                    className="at-btnCancel"
-                    disabled={loading}
-                  >
-                    Отмена
-                  </Button>
-
-                  <Button
-                    type="submit"
-                    className="at-btnSubmit"
-                    disabled={loading}
-                  >
-                    {loading 
-                      ? (isEditMode ? "Сохранение..." : "Создание...") 
-                      : (isEditMode ? "Сохранить изменения" : "Создать тег")}
-                  </Button>
-                </div>
-              </form>
-            )}
-          </div>
+            </form>
+          )}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

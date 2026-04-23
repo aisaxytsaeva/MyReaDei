@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { bookApi} from "./../lib/api";
+import { bookApi } from "./../lib/api";
 import type { FormState, BookForEdit } from "./../types";
 
 export const useBookForm = (isEditMode: boolean, bookId?: string) => {
@@ -70,37 +70,57 @@ export const useBookForm = (isEditMode: boolean, bookId?: string) => {
     setError("");
 
     try {
+      // Режим редактирования
       if (isEditMode && bookId) {
         const updatePayload: any = {};
 
-        if (formData.title !== bookData?.title) updatePayload.title = formData.title;
-        if (formData.author !== bookData?.author) updatePayload.author = formData.author;
-        if (formData.description !== (bookData?.description ?? "")) updatePayload.description = formData.description;
+        // Проверяем изменения в текстовых полях
+        if (formData.title !== bookData?.title) {
+          updatePayload.title = formData.title;
+        }
+        if (formData.author !== bookData?.author) {
+          updatePayload.author = formData.author;
+        }
+        if (formData.description !== (bookData?.description ?? "")) {
+          updatePayload.description = formData.description;
+        }
 
-        const currentLocationIds = formData.location_ids.sort().join(',');
+        // Проверяем изменения в локациях
+        const currentLocationIds = [...formData.location_ids].sort().join(',');
         const originalLocationIds = (bookData?.locations?.map(l => Number(l.id)) ?? []).sort().join(',');
         if (currentLocationIds !== originalLocationIds) {
-          updatePayload.location_ids = formData.location_ids.join(',');
+          updatePayload.location_ids = formData.location_ids;
         }
 
-        const currentTagIds = formData.tag_ids.sort().join(',');
+        // Проверяем изменения в тегах
+        const currentTagIds = [...formData.tag_ids].sort().join(',');
         const originalTagIds = (bookData?.tags?.map(t => Number(t.id)) ?? []).sort().join(',');
         if (currentTagIds !== originalTagIds) {
-          updatePayload.tag_ids = formData.tag_ids.join(',');
+          updatePayload.tag_ids = formData.tag_ids;
         }
 
+        // Обновляем данные книги, если есть изменения
         if (Object.keys(updatePayload).length > 0) {
+          console.log("Updating book with payload:", updatePayload);
           await bookApi.updateBook(bookId, updatePayload);
         }
 
+        // Обновляем обложку, если она была изменена (отдельным запросом)
         if (formData.coverImage) {
+          console.log("Updating cover for book:", bookId);
           await bookApi.replaceCover(bookId, formData.coverImage);
         }
 
-        return { success: true, message: "Книга успешно обновлена!", redirectTo: `/book/${bookId}` };
+        return { 
+          success: true, 
+          message: "Книга успешно обновлена!", 
+          redirectTo: `/book/${bookId}`,
+          bookId: Number(bookId)
+        };
       }
 
-      await bookApi.createBook({
+      // Режим создания новой книги
+      const response = await bookApi.createBook({
         title: formData.title,
         author: formData.author,
         description: formData.description || "",
@@ -109,11 +129,26 @@ export const useBookForm = (isEditMode: boolean, bookId?: string) => {
         cover_image: formData.coverImage,
       });
 
-      return { success: true, message: "Книга успешно добавлена!", redirectTo: "/mybooks" };
+      // Получаем ID созданной книги из ответа
+      const createdBook = response.data;
+      const newBookId = createdBook.id;
+
+      return { 
+        success: true, 
+        message: "Книга успешно добавлена!", 
+        redirectTo: `/book/${newBookId}`,
+        bookId: newBookId
+      };
     } catch (err: any) {
+      console.error("Submit error:", err);
       const msg = err?.response?.data?.detail ?? err?.message ?? "Ошибка сохранения";
       setError(msg);
-      return { success: false, message: msg };
+      return { 
+        success: false, 
+        message: msg,
+        redirectTo: undefined,
+        bookId: undefined
+      };
     } finally {
       setLoading(false);
     }

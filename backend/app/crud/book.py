@@ -93,33 +93,12 @@ def create_book(db: Session, book_data: BookCreate, user_id: int) -> Book:
         db.add(book_location)
     
     if hasattr(book_data, 'tag_ids') and book_data.tag_ids:
-        tags = db.query(Tag).filter(Tag.id.in_(book_data.tag_ids)).all()
-        db_book.tags.extend(tags)
-    
-    db.commit()
-    db.refresh(db_book)
-    return db_book
-def create_book(db: Session, book_data: BookCreate, user_id: int) -> Book:
-    db_book = Book(
-        title=book_data.title,
-        author=book_data.author,
-        description=book_data.description,
-        cover_image_key=book_data.cover_image_key,  
-        owner_id=user_id,  
-        status="available"  
-    )
-    db.add(db_book)
-    db.flush()  
-    
-    for location_id in book_data.location_ids:
-        book_location = BookLocation(
-            book_id=db_book.id,
-            location_id=location_id
-        )
-        db.add(book_location)
-    
-    if hasattr(book_data, 'tag_ids') and book_data.tag_ids:
-        tag_ids_list = [tag.id for tag in book_data.tag_ids]  
+        # Если tag_ids содержит объекты TagInfo, извлекаем id
+        if book_data.tag_ids and hasattr(book_data.tag_ids[0], 'id'):
+            tag_ids_list = [tag.id for tag in book_data.tag_ids]
+        else:
+            tag_ids_list = book_data.tag_ids
+        
         tags = db.query(Tag).filter(Tag.id.in_(tag_ids_list)).all()
         db_book.tags.extend(tags)
     
@@ -358,8 +337,8 @@ def add_tags_to_book(
 def remove_tags_from_book(
     db: Session,
     book_id: int,
-    tag_ids: List[TagInfo],  # Изменен тип параметра
-    user_id: int
+    user_id: int,
+    tag_ids: List[TagInfo],  
 ) -> Book:
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
@@ -377,17 +356,27 @@ def remove_tags_from_book(
 
 def search_books_by_tags(
     db: Session,
-    tag_ids: List[TagInfo],  
+    tag_ids: List[int],  
+    match_all: bool = True,
     skip: int = 0,
     limit: int = 100
 ) -> List[Book]:
-    tag_ids_list = [tag.id for tag in tag_ids]
+   
+    if not tag_ids:
+        return []
     
-    books = db.query(Book).join(Book.tags).filter(
-        Tag.id.in_(tag_ids_list)
-    ).group_by(Book.id).having(
-        func.count(Tag.id) == len(tag_ids_list)  
-    ).offset(skip).limit(limit).all()
+    tag_ids_list = tag_ids if isinstance(tag_ids[0], int) else [tag.id for tag in tag_ids]
+    
+    if match_all:
+        books = db.query(Book).join(Book.tags).filter(
+            Tag.id.in_(tag_ids_list)
+        ).group_by(Book.id).having(
+            func.count(Tag.id) == len(tag_ids_list)
+        ).offset(skip).limit(limit).all()
+    else:
+        books = db.query(Book).join(Book.tags).filter(
+            Tag.id.in_(tag_ids_list)
+        ).distinct().offset(skip).limit(limit).all()
     
     return books
 
@@ -460,3 +449,6 @@ def get_books_marked_for_deletion(
         .limit(limit)
         .all()
     )
+
+def count_books_marked_for_deletion(db: Session) -> int:
+    return db.query(Book).filter(Book.status == "marked_for_deletion").count()

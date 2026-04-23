@@ -15,6 +15,7 @@ type BaseProps = {
   className?: string;
   style?: React.CSSProperties;
   disabled?: boolean;
+  'data-testid'?: string;
 };
 
 type ButtonAsButton = BaseProps & {
@@ -46,6 +47,7 @@ const Button: React.FC<Props> = (props) => {
     className = "",
     style,
     disabled,
+    'data-testid': dataTestId,
   } = props;
 
   const classes = `${styles.button} ${styles[variant]} ${styles[size]} ${className}`;
@@ -57,13 +59,13 @@ const Button: React.FC<Props> = (props) => {
         className={classes}
         onClick={onClick}
         style={style}
+        data-testid={dataTestId}
       >
         {children}
       </Link>
     );
   }
 
-  // external link
   if ("href" in props && props.href) {
     return (
       <a
@@ -73,13 +75,13 @@ const Button: React.FC<Props> = (props) => {
         style={style}
         target={props.target}
         rel={props.rel}
+        data-testid={dataTestId}
       >
         {children}
       </a>
     );
   }
 
-  // button
   const type = "type" in props ? props.type : "button";
 
   return (
@@ -89,6 +91,7 @@ const Button: React.FC<Props> = (props) => {
       onClick={onClick}
       style={style}
       disabled={disabled}
+      data-testid={dataTestId}
     >
       {children}
     </button>

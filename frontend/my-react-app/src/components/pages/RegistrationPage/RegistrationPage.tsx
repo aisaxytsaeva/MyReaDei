@@ -71,11 +71,7 @@ const RegistrationPage: React.FC = () => {
         "Неизвестная ошибка";
 
       if (status === 404) {
-        setError(
-          [
-            " Ошибка 404 ",
-          ].join("\n")
-        );
+        setError(" Ошибка 404 ");
       } else if (status === 422) {
         setError("Ошибка валидации данных. Проверьте формат.");
       } else if (status === 400) {
@@ -87,11 +83,7 @@ const RegistrationPage: React.FC = () => {
       } else if (!status) {
         const msg = String(detail);
         if (msg.includes("Network") || msg.includes("Failed to fetch")) {
-          setError(
-            [
-              "Не удалось подключиться к серверу",
-            ].join("\n")
-          );
+          setError("Не удалось подключиться к серверу");
         } else {
           setError(`Ошибка: ${msg}`);
         }
@@ -109,7 +101,6 @@ const RegistrationPage: React.FC = () => {
 
   return (
     <>
-      
       <div className="registration-page">
         <Header />
 
@@ -118,6 +109,7 @@ const RegistrationPage: React.FC = () => {
 
           {success && (
             <div
+              data-testid="success-message"
               style={{
                 color: "#000000",
                 borderRadius: "5px",
@@ -132,6 +124,7 @@ const RegistrationPage: React.FC = () => {
 
           {error && !success && (
             <div
+              data-testid="error-message"
               style={{
                 color: "#721c24",
                 backgroundColor: "#f8d7da",
@@ -151,6 +144,7 @@ const RegistrationPage: React.FC = () => {
             <div className="form-group">
               <label className="form-label">Логин</label>
               <input
+                data-testid="username"
                 type="text"
                 name="username"
                 value={formData.username}
@@ -165,6 +159,7 @@ const RegistrationPage: React.FC = () => {
             <div className="form-group">
               <label className="form-label">Почта</label>
               <input
+                data-testid="email"
                 type="email"
                 name="email"
                 value={formData.email}
@@ -179,6 +174,7 @@ const RegistrationPage: React.FC = () => {
             <div className="form-group">
               <label className="form-label">Пароль</label>
               <input
+                data-testid="password"
                 type="password"
                 name="password"
                 value={formData.password}
@@ -192,6 +188,7 @@ const RegistrationPage: React.FC = () => {
 
             <div className="button-center">
               <Button
+                data-testid="register-submit"
                 type="submit"
                 disabled={loading || success}
                 style={{ width: "460px", height: "50px" }}

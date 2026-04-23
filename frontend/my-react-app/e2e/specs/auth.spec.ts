@@ -1,38 +1,34 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Authentication', () => {
-  test('user can login with valid credentials', async ({ page }) => {
-    await page.goto('/auth'); 
-    await page.fill('[data-testid="username"]', 'testuser');
-    await page.fill('[data-testid="password"]', 'test123');
-    await page.click('[data-testid="login-submit"]');
+  test('user can register, login, go to profile and logout', async ({ page }) => {
+    const username = `logintest_${Date.now()}`;
+    const email = `${username}@example.com`;
+    const password = 'Test123456!';
     
-    await expect(page).toHaveURL('/home');
+    await page.goto('/registration');
+    await page.fill('[data-testid="username"]', username);
+    await page.fill('[data-testid="email"]', email);
+    await page.fill('[data-testid="password"]', password);
+    await page.click('button:has-text("Зарегистрироваться")');
+    await page.waitForURL('/auth', { timeout: 10000 });
+    
+    await page.fill('[data-testid="username"]', username);
+    await page.fill('[data-testid="password"]', password);
+    await page.click('button:has-text("Войти")');
+    await page.waitForURL('/home', { timeout: 10000 });
     await expect(page.locator('[data-testid="user-menu"]')).toBeVisible();
-  });
-
-  test('user can register', async ({ page }) => {
-    await page.goto('/registration'); // Ваш путь регистрации
-    await page.fill('[data-testid="username"]', 'newuser');
-    await page.fill('[data-testid="email"]', 'new@example.com');
-    await page.fill('[data-testid="password"]', 'test123');
-    await page.fill('[data-testid="confirm-password"]', 'test123');
-    await page.click('[data-testid="register-submit"]');
-    
-    await expect(page).toHaveURL('/home');
-  });
-
-  test('user can logout', async ({ page }) => {
-    await page.goto('/auth');
-    await page.fill('[data-testid="username"]', 'testuser');
-    await page.fill('[data-testid="password"]', 'test123');
-    await page.click('[data-testid="login-submit"]');
-    await expect(page).toHaveURL('/home');
     
     await page.click('[data-testid="user-menu"]');
-    await page.click('[data-testid="logout-button"]');
+    await page.waitForURL('/profile', { timeout: 10000 });
+    await expect(page).toHaveURL('/profile');
     
-    await expect(page).toHaveURL('/'); // На главную
+    await expect(page.locator('h1.profile-user-name')).toContainText(username);
+    
+    await page.click('button:has-text("Выйти")');
+    await page.waitForURL('/', { timeout: 10000 });
+    await expect(page).toHaveURL('/');
+    
     await expect(page.locator('[data-testid="login-button"]')).toBeVisible();
   });
 });

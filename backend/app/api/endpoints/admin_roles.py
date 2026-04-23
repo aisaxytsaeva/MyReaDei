@@ -1,5 +1,6 @@
 from typing import List
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.schemas.books import BookForDelete
@@ -27,15 +28,27 @@ async def list_roles(
 
     return {"roles": list(UserRole)}
 
-@router.get("/users", response_model=list[AdminUserResponse])
+class PaginatedUsersResponse(BaseModel):
+    items: List[AdminUserResponse]
+    total: int
+    page: int
+    size: int
+    pages: int
+
+@router.get("/users", response_model=PaginatedUsersResponse)
 async def admin_list_users(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=100),
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    users = roles_crud.list_users(db, skip=skip, limit=limit)
-    return [
+    total = roles_crud.count_users(db)
+    
+    skip = (page - 1) * size
+    
+    users = roles_crud.list_users(db, skip=skip, limit=size)
+    
+    items = [
         AdminUserResponse(
             id=u.id,
             username=u.username,
@@ -45,6 +58,15 @@ async def admin_list_users(
         )
         for u in users
     ]
+    
+    return PaginatedUsersResponse(
+        items=items,
+        total=total,
+        page=page,
+        size=size,
+        pages=(total + size - 1) // size
+    )
+
 
 @router.put("/users/{user_id}/role", response_model=AdminUserResponse)
 async def admin_set_user_role(
@@ -82,24 +104,45 @@ async def admin_get_user_permissions(
     return {"permissions": get_user_permissions(u)}
 
 
+class PaginatedBooksForDelete(BaseModel):
+    items: List[BookForDelete]
+    total: int
+    page: int
+    size: int
+    pages: int
 
-@router.get("/books/for-delete", response_model=List[BookForDelete])
+@router.get("/books/for-delete", response_model=PaginatedBooksForDelete)
 def list_books_marked_for_deletion(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=100),
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    books = books_crud.get_books_marked_for_deletion(db=db, skip=skip, limit=limit)
+    total = books_crud.count_books_marked_for_deletion(db=db)
+    
+    skip = (page - 1) * size
+    
+    books = books_crud.get_books_marked_for_deletion(
+        db=db, 
+        skip=skip, 
+        limit=size
+    )
 
-
-    return [
+    items = [
         BookForDelete(
             id=b.id,
             title=b.title or "",
             author=b.author or "",
-            cover_image_uri=b.cover_image_uri or "",
+            cover_image_uri=b.cover_image_url or "",  # ✅ Используем cover_image_url
             status=b.status or "",
         )
         for b in books
     ]
+    
+    return PaginatedBooksForDelete(
+        items=items,
+        total=total,
+        page=page,
+        size=size,
+        pages=(total + size - 1) // size
+    )

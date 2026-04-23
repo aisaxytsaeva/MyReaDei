@@ -44,7 +44,7 @@ export const ExternalBookSearch: React.FC<ExternalBookSearchProps> = ({
   };
 
   return (
-    <div className="external-search">
+    <div className="external-search" data-testid="external-search-section">
       <div className="search-group">
         <input
           type="text"
@@ -53,32 +53,33 @@ export const ExternalBookSearch: React.FC<ExternalBookSearchProps> = ({
           placeholder="Поиск книги в Google Books..."
           disabled={loading || parentLoading}
           onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+          data-testid="external-search-input"
         />
-        <button onClick={handleSearch} disabled={loading || parentLoading}>
+        <button onClick={handleSearch} data-testid="external-search-button" disabled={loading || parentLoading}>
           {loading ? 'Поиск...' : 'Найти'}
         </button>
       </div>
       
       {loading && (
-        <div className="loading-state">
+        <div className="loading-state" data-testid="external-search-loading">
           <div className="spinner-small"></div>
           <p>Поиск книг...</p>
         </div>
       )}
       
       {error && (
-        <div className="error-state">
+        <div className="error-state" data-testid="external-search-error">
           <p>{error}</p>
           <span className="fallback-hint">Вы можете продолжить заполнение вручную</span>
         </div>
       )}
       
       {results.length > 0 && (
-        <div className="search-results">
+        <div className="search-results" data-testid="external-book-results">
           <h4>Результаты поиска:</h4>
           <ul>
             {results.map((book, idx) => (
-              <li key={idx} onClick={() => onSelect(book)} className="result-item">
+              <li key={idx} onClick={() => onSelect(book)} className="result-item" data-testid={`external-book-${idx}`}>
                 {book.cover_image && (
                   <img src={book.cover_image} alt="" width="40" />
                 )}
@@ -86,6 +87,16 @@ export const ExternalBookSearch: React.FC<ExternalBookSearchProps> = ({
                   <strong>{book.title}</strong>
                   <p>{book.authors?.join(', ') || 'Автор не указан'}</p>
                 </div>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelect(book);
+                  }}
+                  data-testid={`import-book-${idx}`}
+                  className="import-button"
+                >
+                  Импортировать
+                </button>
               </li>
             ))}
           </ul>

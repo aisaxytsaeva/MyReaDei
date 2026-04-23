@@ -1,5 +1,5 @@
-import React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import Header from "../../UI/Header/Header";
 import Button from "../../UI/Button/Button";
@@ -21,6 +21,8 @@ const AddEditBookPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
   const { user, token } = useAuth();
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const isEditMode = Boolean(id);
   const {
@@ -38,10 +40,19 @@ const AddEditBookPage: React.FC = () => {
   const { locations, loading: loadingLocations } = useFetchLocations();
   const { tags, loading: loadingTags } = useFetchTags();
 
+  useEffect(() => {
+    if (!user && !token) {
+      navigate('/auth', { replace: true });
+    }
+  }, [user, token, navigate]);
+
   const handleExternalBookSelect = (externalBook: ExternalBook) => {
-    handleInputChange({
-      target: { name: "title", value: externalBook.title }
-    } as any);
+    // Заполняем форму данными из внешнего API
+    if (externalBook.title) {
+      handleInputChange({
+        target: { name: "title", value: externalBook.title }
+      } as any);
+    }
     
     if (externalBook.authors && externalBook.authors.length > 0) {
       handleInputChange({
@@ -60,49 +71,77 @@ const AddEditBookPage: React.FC = () => {
     }
   };
 
+  const validateForm = (): boolean => {
+    setValidationError(null);
+    
+    if (!formData.title.trim()) {
+      setValidationError("Пожалуйста, введите название книги");
+      return false;
+    }
+    
+    if (!formData.author.trim()) {
+      setValidationError("Пожалуйста, введите автора книги");
+      return false;
+    }
+    
+    if (!formData.location_ids || formData.location_ids.length === 0) {
+      setValidationError("Пожалуйста, выберите хотя бы одну локацию");
+      return false;
+    }
+    
+    return true;
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!formData.title.trim() || !formData.author.trim() || formData.location_ids.length === 0) {
-      alert("Пожалуйста, заполните все обязательные поля");
+    setSubmitError(null);
+    
+    // Валидация формы
+    if (!validateForm()) {
+      // Прокручиваем к ошибке валидации
+      const errorElement = document.querySelector('.validation-error');
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
 
     if (!user || !token) {
-      alert("Пожалуйста, войдите в систему");
+      setValidationError("Пожалуйста, войдите в систему");
       navigate("/auth");
       return;
     }
 
-    const result = await handleSubmit();
-    if (result.success && result.redirectTo) {
-      alert(result.message);
-      navigate(result.redirectTo);
-    } else if (!result.success && result.message) {
-      alert(result.message);
+    try {
+      const result = await handleSubmit();
+      
+      if (result.success && result.bookId) {
+        // Перенаправляем на страницу книги после успешного сохранения
+        navigate(`/book/${result.bookId}`, { replace: true });
+      } else if (!result.success && result.message) {
+        setSubmitError(result.message);
+      }
+    } catch (err: any) {
+      console.error("Submission error:", err);
+      const errorMessage = err.response?.data?.detail || "Произошла ошибка при сохранении книги";
+      setSubmitError(errorMessage);
     }
   };
 
   const handleCancel = () => {
-    if (isEditMode && id) navigate(`/book/${id}`);
-    else navigate("/mybooks");
+    if (isEditMode && id) {
+      navigate(`/book/${id}`);
+    } else {
+      navigate("/mybooks");
+    }
   };
 
+  // Проверка аутентификации
   if (!user || !token) {
-    return (
-      <div className="add-edit-book-page">
-        <Header />
-        <div style={{ textAlign: "center", padding: "100px 20px", color: "#666" }}>
-          <h2>Пожалуйста, войдите в систему</h2>
-          <p>Для добавления или редактирования книги требуется авторизация</p>
-          <Button onClick={() => navigate("/auth")} style={{ marginTop: "20px" }}>
-            Войти
-          </Button>
-        </div>
-      </div>
-    );
+    return <Navigate to="/auth" replace />;
   }
 
+  // Состояние загрузки для режима редактирования
   if (loading && isEditMode) {
     return (
       <div className="add-edit-book-page">
@@ -112,6 +151,7 @@ const AddEditBookPage: React.FC = () => {
     );
   }
 
+  // Ошибка загрузки для режима редактирования
   if (error && isEditMode) {
     return (
       <div className="add-edit-book-page">
@@ -142,8 +182,9 @@ const AddEditBookPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Внешний поиск - только для создания новой книги */}
           {!isEditMode && (
-            <div className="external-search-section">
+            <div className="external-search-section" data-testid="external-search-section">
               <ExternalBookSearch 
                 onSelect={handleExternalBookSelect} 
                 loading={loading}
@@ -151,7 +192,7 @@ const AddEditBookPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={onSubmit} className="book-form">
+          <form onSubmit={onSubmit} className="book-form" data-testid="book-form" noValidate>
             <div className="form-grid">
               <div className="form-left-column">
                 <BookImageUpload
@@ -170,6 +211,7 @@ const AddEditBookPage: React.FC = () => {
                   description={formData.description}
                   onInputChange={handleInputChange}
                   loading={loading}
+                  error={validationError}
                 />
 
                 <TagsSelector
@@ -186,17 +228,56 @@ const AddEditBookPage: React.FC = () => {
                   onChange={handleLocationChange}
                   loading={loading}
                   loadingLocations={loadingLocations}
+                  error={validationError?.includes("локацию") ? validationError : undefined}
                 />
               </div>
             </div>
 
-            {error && (
-              <div className="error-message">
-                <p>{error}</p>
+            {/* Отображение ошибок валидации */}
+            {validationError && (
+              <div className="validation-error" style={{ 
+                backgroundColor: "#f8d7da", 
+                color: "#721c24", 
+                padding: "12px", 
+                borderRadius: "8px",
+                marginTop: "16px",
+                border: "1px solid #f5c6cb"
+              }}>
+                <p style={{ margin: 0 }}>{validationError}</p>
               </div>
             )}
 
-            <FormActions isEditMode={isEditMode} loading={loading} onCancel={handleCancel} />
+            {/* Отображение ошибки отправки */}
+            {submitError && (
+              <div className="error-message" style={{ 
+                backgroundColor: "#f8d7da", 
+                color: "#721c24", 
+                padding: "12px", 
+                borderRadius: "8px",
+                marginTop: "16px",
+                border: "1px solid #f5c6cb"
+              }}>
+                <p style={{ margin: 0 }}>{submitError}</p>
+              </div>
+            )}
+
+            {error && !validationError && (
+              <div className="error-message" style={{ 
+                backgroundColor: "#f8d7da", 
+                color: "#721c24", 
+                padding: "12px", 
+                borderRadius: "8px",
+                marginTop: "16px"
+              }}>
+                <p style={{ margin: 0 }}>{error}</p>
+              </div>
+            )}
+
+            <FormActions 
+              isEditMode={isEditMode} 
+              loading={loading} 
+              onCancel={handleCancel}
+            />
           </form>
         </div>
       </div>

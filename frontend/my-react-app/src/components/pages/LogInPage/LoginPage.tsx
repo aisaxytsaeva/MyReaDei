@@ -42,7 +42,6 @@ const LoginPage: React.FC = () => {
 
   return (
     <>
-      
       <div className="login-page">
         <Header />
 
@@ -51,6 +50,7 @@ const LoginPage: React.FC = () => {
 
           {error && (
             <div
+              data-testid="error-message"
               style={{
                 color: "#721c24",
                 backgroundColor: "#f8d7da",
@@ -69,6 +69,7 @@ const LoginPage: React.FC = () => {
             <div className="form-group">
               <label className="form-label">Логин</label>
               <input
+                data-testid="username"
                 type="text"
                 value={login}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLogin(e.target.value)}
@@ -82,6 +83,7 @@ const LoginPage: React.FC = () => {
             <div className="form-group">
               <label className="form-label">Пароль</label>
               <input
+                data-testid="password"
                 type="password"
                 value={password}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
@@ -93,7 +95,12 @@ const LoginPage: React.FC = () => {
             </div>
 
             <div className="button-center">
-              <Button type="submit" className="fixed-width" disabled={loading}>
+              <Button 
+                type="submit" 
+                className="fixed-width" 
+                disabled={loading}
+                data-testid="login-submit"
+              >
                 {loading ? "Вход..." : "Войти"}
               </Button>
             </div>

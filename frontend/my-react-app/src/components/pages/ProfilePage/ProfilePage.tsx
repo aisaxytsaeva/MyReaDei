@@ -191,7 +191,9 @@ const ProfilePage: React.FC = () => {
               </div>
             </div>
 
-            <Button onClick={() => void handleLogout()} className="profile-logout-button">
+            <Button onClick={() => void handleLogout()} 
+            className="profile-logout-button"
+            data-testid="logout-button">
               Выйти
             </Button>
           </div>

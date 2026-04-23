@@ -4,6 +4,9 @@ export const API_BASE_URL = "http://127.0.0.1:8000";
 
 export type Id = number | string;
 
+
+
+
 export type CreateBookPayload = {
   title: string;
   author: string;
@@ -250,7 +253,8 @@ export const bookApi = {
   getMyBooks: (params?: { skip?: number; limit?: number }): Promise<AxiosResponse<Book[]>> =>
     api.get<Book[]>("/users/book/my", { params }),
 
-  createBook: (bookData: {
+  // Исправленный createBook - возвращает созданную книгу с ID
+  createBook: async (bookData: {
     title: string;
     author: string;
     description?: string;
@@ -278,42 +282,48 @@ export const bookApi = {
       fd.append("cover_image", bookData.cover_image);
     }
 
-    return api.post<Book>("/books/", fd, {
-      headers: { "Content-Type": undefined as any },
+    const response = await api.post<Book>("/books/", fd, {
+      headers: { "Content-Type": "multipart/form-data" },
     });
+    
+    return response;
   },
 
-  updateBook: (id: Id, bookData: UpdateBookPayload): Promise<AxiosResponse<Book>> => {
+  updateBook: async (id: Id, bookData: UpdateBookPayload): Promise<AxiosResponse<Book>> => {
     const fd = new FormData();
 
-    if (bookData.title) fd.append("title", bookData.title);
-    if (bookData.author) fd.append("author", bookData.author);
-    if (bookData.description) fd.append("description", bookData.description);
-    if (bookData.status) fd.append("status", bookData.status);
+    // Добавляем текстовые поля
+    if (bookData.title !== undefined) fd.append("title", bookData.title);
+    if (bookData.author !== undefined) fd.append("author", bookData.author);
+    if (bookData.description !== undefined) fd.append("description", bookData.description);
+    
+    // ВАЖНО: бэкенд ожидает "book_status", а не "status"
+    if (bookData.status !== undefined) fd.append("book_status", bookData.status);
 
+    // location_ids отправляем как строку через запятую
     if (bookData.location_ids && bookData.location_ids.length > 0) {
-      for (const id of bookData.location_ids) {
-        fd.append("location_ids", String(id));
-      }
+      fd.append("location_ids", bookData.location_ids.join(','));
     }
 
+    // tag_ids отправляем как строку через запятую
     if (bookData.tag_ids && bookData.tag_ids.length > 0) {
-      for (const id of bookData.tag_ids) {
-        fd.append("tag_ids", String(id));
-      }
+      fd.append("tag_ids", bookData.tag_ids.join(','));
     }
 
-    if (bookData.cover_image) {
+    // cover_image только если это файл
+    if (bookData.cover_image && bookData.cover_image instanceof File) {
       fd.append("cover_image", bookData.cover_image);
     }
 
     return api.put<Book>(`/books/${id}`, fd, {
-      headers: { "Content-Type": undefined as any },
+      headers: { "Content-Type": "multipart/form-data" },
     });
   },
+
   searchExternalBooks: (query: string): Promise<AxiosResponse<ExternalSearchResponse>> =>
     api.get<ExternalSearchResponse>("/books/external/search", { params: { query } }),
-    deleteBook: (id: Id): Promise<AxiosResponse<void>> => api.delete<void>(`/books/${id}`),
+    
+  deleteBook: (id: Id): Promise<AxiosResponse<void>> => api.delete<void>(`/books/${id}`),
 
   uploadCover: (bookId: Id, coverImage: File | Blob): Promise<AxiosResponse<Book>> => {
     const formData = new FormData();
@@ -362,7 +372,7 @@ export const bookApi = {
     api.post<Tag>("/tags/", tagData),
 
   updateTag: (tagId: number, tagData: UpdateTagPayload): Promise<AxiosResponse<Tag>> =>
-  api.put<Tag>(`/tags/${tagId}`, tagData),
+    api.put<Tag>(`/tags/${tagId}`, tagData),
 
   deleteTag: (tagId: number, force = false): Promise<AxiosResponse<void>> =>
     api.delete<void>(`/tags/${tagId}`, { params: { force } }),
@@ -451,12 +461,26 @@ export const bookApi = {
 
   getStatistics: (): Promise<AxiosResponse<Statistics>> => api.get<Statistics>("/statistics"),
 
-  adminGetUsers: () => api.get("/admin/users"),
-  adminSetUserRole: (userId: Id, role: string) => api.put(`/admin/users/${userId}/role`, { role }),
-  adminGetBooksForDelete: () => api.get("/admin/books/for-delete"),
-
+  adminGetUsers: (page: number = 1, size: number = 10) => {
+    return api.get(`/admin/users?page=${page}&size=${size}`);
+  },
+  
+  adminSetUserRole: (userId: number | string, role: string) => {
+    return api.put(`/admin/users/${userId}/role`, { role });
+  },
+  
+  adminGetBooksForDelete: (page: number = 1, size: number = 10) => {
+    const skip = (page - 1) * size;
+    const limit = size;
+    return api.get(`/admin/books/for-delete?skip=${skip}&limit=${limit}`);
+  },
+    
   markBookDelete: (id: Id) => api.post(`/books/${id}/mark-delete`),
+  
   unmarkBookDelete: (id: Id) => api.post(`/books/${id}/unmark-delete`),
+  
+  patchBook: (id: Id, updates: Partial<Book>): Promise<AxiosResponse<Book>> =>
+    api.patch<Book>(`/books/${id}`, updates),
 };
 
 export default api;
