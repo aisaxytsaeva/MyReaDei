@@ -5,6 +5,34 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, AsyncMock
 
+# Устанавливаем тестовое окружение ДО импорта чего-либо
+os.environ['TESTING'] = 'true'
+os.environ['DISABLE_MINIO'] = 'true'
+os.environ['DISABLE_REDIS'] = 'true'
+os.environ['DATABASE_URL'] = 'sqlite:///./test.db'
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Полностью заменяем minio_client модуль
+import app.core.minio_client
+from unittest.mock import MagicMock
+
+# Создаём мок-объект
+mock_minio = MagicMock()
+mock_minio.client = MagicMock()
+mock_minio.client.bucket_exists = MagicMock(return_value=True)
+mock_minio.client.make_bucket = MagicMock()
+mock_minio.client.set_bucket_policy = MagicMock()
+mock_minio.upload_file = AsyncMock(return_value={"filename": "test.jpg"})
+mock_minio.delete_file = MagicMock(return_value=True)
+mock_minio.get_file_url = MagicMock(return_value="http://localhost:9000/test.jpg")
+mock_minio._ensure_bucket_exists = MagicMock()
+
+# Заменяем
+app.core.minio_client.minio_service = mock_minio
+app.core.minio_client.MinioService = MagicMock(return_value=mock_minio)
+
+# Теперь импортируем всё остальное
 import pytest
 import jwt
 from sqlalchemy import create_engine
@@ -12,44 +40,6 @@ from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 
 from app.core.config import settings
-
-os.environ['DISABLE_REDIS'] = 'true'
-os.environ['DATABASE_URL'] = 'sqlite:///./test.db'
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-# ============================================
-# МОК MINIO - ПОДМЕНЯЕМ ДО ИМПОРТА ЛЮБЫХ МОДУЛЕЙ APP
-# ============================================
-# Создаём мок-класс MinioService
-class MockMinioService:
-    def __init__(self):
-        self.bucket = "test-bucket"
-    
-    def bucket_exists(self, bucket_name):
-        return True
-    
-    def make_bucket(self, bucket_name):
-        pass
-    
-    def set_bucket_policy(self, bucket_name, policy):
-        pass
-    
-    async def upload_file(self, file, folder="covers"):
-        return {"filename": "test.jpg", "url": "http://test.com/test.jpg"}
-    
-    def delete_file(self, filename):
-        return True
-    
-    def get_file_url(self, filename):
-        return "http://localhost:9000/test.jpg"
-
-# Подменяем класс в модуле ДО его импорта
-import app.core.minio_client
-app.core.minio_client.MinioService = MockMinioService
-app.core.minio_client.minio_service = MockMinioService()
-
-# Теперь можно импортировать всё остальное
 from app.main import app
 from app.core.db import Base, get_db
 from app.core.security import get_password_hash
