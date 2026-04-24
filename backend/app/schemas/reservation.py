@@ -1,6 +1,7 @@
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import Optional
+
 
 class ReturnPeriod(str, Enum):
     SEVEN_DAYS = "7"
@@ -22,10 +23,12 @@ class ReservationCreate(BaseModel):
     selected_location_id: int
     planned_return_days: ReturnPeriod
 
+
 class LocationInfo(BaseModel):
     id: Optional[int] = None
     name: str
     address: str
+
 
 class ReservationResponse(BaseModel):
     id: int
@@ -34,8 +37,8 @@ class ReservationResponse(BaseModel):
     status: str
     created_at: str
     planned_return_date: str
-    selected_location: LocationInfo  
-    
+    selected_location: LocationInfo
+
     class Config:
         from_attributes = True
 

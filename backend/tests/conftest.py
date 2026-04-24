@@ -4,25 +4,19 @@ import os
 import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
+
 import pytest
+import jwt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
-from app.core.config import settings
-import jwt
 
+from app.core.config import settings
 
 os.environ['DISABLE_REDIS'] = 'true'
 os.environ['DATABASE_URL'] = 'sqlite:///./test.db'
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-import app.core.minio_client
-mock_minio = MagicMock()
-mock_minio.upload_file.return_value = {"filename": "covers/test.jpg"}
-mock_minio.delete_file.return_value = True
-mock_minio.get_file_url.return_value = "http://test.com/covers/test.jpg"
-app.core.minio_client.minio_service = mock_minio
 
 from app.main import app
 from app.core.db import Base, get_db
@@ -33,7 +27,6 @@ from app.models.tags import Tag
 from app.core.permissions import UserRole
 from app.crud import book as books_crud
 from app.schemas.books import BookCreate
-
 
 TEST_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
@@ -66,7 +59,7 @@ def client(db_session):
             yield db_session
         finally:
             pass
-    
+
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
         yield test_client
@@ -148,8 +141,6 @@ def test_tag(db_session):
 
 @pytest.fixture(scope="function")
 def test_book(db_session, test_user, test_location):
-    
-    
     book_data = BookCreate(
         title="Test Book",
         author="Test Author",
@@ -160,13 +151,14 @@ def test_book(db_session, test_user, test_location):
     book = books_crud.create_book(db_session, book_data, user_id=test_user.id)
     return book
 
+
 @pytest.fixture(scope="function")
-def test_book_another_user(db_session, test_user, test_location):
+def test_book_another_user(db_session, test_location):
     from app.crud import book as books_crud
     from app.schemas.books import BookCreate
     from app.models.users import User
     from app.core.security import get_password_hash
-    
+
     other_user = User(
         id=4,
         username="otheruser",
@@ -176,7 +168,7 @@ def test_book_another_user(db_session, test_user, test_location):
     )
     db_session.add(other_user)
     db_session.commit()
-    
+
     book_data = BookCreate(
         title="Other User Book",
         author="Other Author",
@@ -197,9 +189,10 @@ def auth_headers(client, test_user):
         "exp": datetime.utcnow() + timedelta(minutes=30),
         "type": "access"
     }
-    
+
     token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return {"Authorization": f"Bearer {token}"}
+
 
 @pytest.fixture(scope="function")
 def admin_headers(client, admin_user):
@@ -207,10 +200,10 @@ def admin_headers(client, admin_user):
         "username": admin_user.username,
         "password": "admin123"
     })
-    
+
     if response.status_code != 200:
         pytest.skip(f"Admin login failed: {response.text}")
-    
+
     token = response.json().get("access_token")
     return {"Authorization": f"Bearer {token}"}
 
@@ -221,10 +214,10 @@ def moderator_headers(client, test_moderator):
         "username": test_moderator.username,
         "password": "moderator123"
     })
-    
+
     if response.status_code != 200:
         pytest.skip(f"Moderator login failed: {response.text}")
-    
+
     token = response.json().get("access_token")
     return {"Authorization": f"Bearer {token}"}
 
@@ -250,6 +243,6 @@ def mock_google_books_service(monkeypatch):
         ],
         "error": None
     })
-    
+
     monkeypatch.setattr("app.services.external_books.google_books_service", mock)
     return mock

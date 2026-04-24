@@ -7,7 +7,7 @@ from app.core.db import get_db
 from app.core.security import get_current_user
 from app.models.books import Book
 from app.models.users import User
-from app.models.tags import Tag  
+from app.models.tags import Tag
 from app.schemas.books import BookCreate, BookUpdate, Catalog, TagInfo
 import logging
 from app.core.minio_client import minio_service
@@ -16,6 +16,16 @@ from app.services.google_books import google_books_service
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/books", tags=["books"])
+
+
+def parse_ids(ids_str: Optional[str]) -> Optional[List[int]]:
+    """Парсит строку с ID через запятую в список целых чисел."""
+    if not ids_str or ids_str.strip() == "":
+        return None
+    try:
+        return [int(x.strip()) for x in ids_str.split(',') if x.strip()]
+    except ValueError:
+        return None
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
@@ -30,62 +40,57 @@ async def create_book(
     db: Session = Depends(get_db)
 ):
     cover_image_key = None
-    
-    def parse_ids(ids_str: str) -> List[int]:
-        if not ids_str or ids_str.strip() == "":
-            return []
-        try:
-            return [int(x.strip()) for x in ids_str.split(',') if x.strip()]
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid IDs format: {ids_str}. Expected comma-separated integers like '1,2,3'"
-            )
-    
+
     try:
         if cover_image:
             file_info = await minio_service.upload_file(cover_image)
             cover_image_key = file_info["filename"]
             logger.info(f"File uploaded to MinIO: {cover_image_key}")
-        
+
         parsed_location_ids = parse_ids(location_ids)
+        if parsed_location_ids is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid location_ids format: {location_ids}"
+            )
+
         parsed_tag_ids = parse_ids(tag_ids) if tag_ids else []
 
         tag_objects = [TagInfo(id=tag_id, tag_name="") for tag_id in parsed_tag_ids]
-        
+
         book_data = BookCreate(
             title=title,
             author=author,
             description=description or "",
-            cover_image_key=cover_image_key,  
+            cover_image_key=cover_image_key,
             location_ids=parsed_location_ids,
-            tag_ids=tag_objects,    
+            tag_ids=tag_objects,
         )
-        
+
         created_book = books_crud.create_book(db, book_data, current_user.id)
-        
+
         if not created_book:
             if cover_image_key:
                 minio_service.delete_file(cover_image_key)
             raise HTTPException(500, "Failed to create book")
-        
+
         book_response = books_crud.get_book_with_details(db, created_book.id)
         return book_response
-        
+
     except HTTPException:
         if cover_image_key:
             try:
                 minio_service.delete_file(cover_image_key)
-            except:
+            except Exception:
                 pass
         raise
     except Exception as e:
         if cover_image_key:
             try:
                 minio_service.delete_file(cover_image_key)
-            except:
+            except Exception:
                 pass
-        
+
         logger.error(f"Error in create_book: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -100,16 +105,17 @@ async def replace_book_cover(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-
     try:
-        updated_book = await books_crud.replace_book_cover(db, book_id, cover_image, current_user.id)
-        
+        updated_book = await books_crud.replace_book_cover(
+            db, book_id, cover_image, current_user.id
+        )
+
         return {
             "message": "Cover replaced successfully",
             "cover_url": updated_book.cover_image_url,
             "cover_key": updated_book.cover_image_key
         }
-        
+
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -132,19 +138,19 @@ async def delete_book_cover(
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
-    
+
     if book.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    
+
     if book.cover_image_key:
         try:
             minio_service.delete_file(book.cover_image_key)
-            
+
             book.cover_image_key = None
             book.cover_image_url = None
             book.cover_image_updated_at = None
             db.commit()
-            
+
             return {"message": "Cover deleted successfully"}
         except Exception as e:
             logger.error(f"Error deleting cover: {e}")
@@ -164,9 +170,9 @@ async def refresh_book_cover_url(
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
-    
+
     new_url = books_crud.get_book_cover_url(book, refresh=True)
-    
+
     return {
         "book_id": book_id,
         "cover_url": new_url,
@@ -187,7 +193,7 @@ async def get_catalog(
         for book in books:
             readers_count = books_crud.get_readers_count(db, book.id)
             tags = [TagInfo(id=tag.id, tag_name=tag.tag_name) for tag in book.tags]
-            cover_url = books_crud.get_book_cover_url(book)  # Получаем актуальный URL
+            cover_url = books_crud.get_book_cover_url(book)
             catalog_books.append(Catalog(
                 id=book.id,
                 title=book.title,
@@ -206,11 +212,11 @@ async def get_book(book_id: int, db: Session = Depends(get_db)):
     book = books_crud.get_book_with_details(db, book_id)
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
-    
+
     json_ld = {
         "@context": "https://schema.org",
         "@type": "Book",
-        "name": book.title,  
+        "name": book.title,
         "author": {
             "@type": "Person",
             "name": book.author
@@ -219,16 +225,21 @@ async def get_book(book_id: int, db: Session = Depends(get_db)):
         "image": book.cover_image_uri,
         "offers": {
             "@type": "Offer",
-            "availability": "https://schema.org/InStock" if book.status == "available" else "https://schema.org/OutOfStock",
+            "availability": (
+                "https://schema.org/InStock"
+                if book.status == "available"
+                else "https://schema.org/OutOfStock"
+            ),
             "price": 0,
             "priceCurrency": "RUB"
         }
     }
-    
+
     return {
-        **book.model_dump(),  
-        "json_ld": json_ld    
+        **book.model_dump(),
+        "json_ld": json_ld
     }
+
 
 @router.put("/{book_id}", status_code=status.HTTP_200_OK)
 async def update_book(
@@ -246,38 +257,30 @@ async def update_book(
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
-    
-    if (book.owner_id != current_user.id and 
-        current_user.role not in [UserRole.MODERATOR, UserRole.ADMIN]):
+
+    if (book.owner_id != current_user.id and
+            current_user.role not in [UserRole.MODERATOR, UserRole.ADMIN]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions to update this book"
         )
-    
+
     cover_image_key = None
     old_cover_key = book.cover_image_key
     new_cover_uploaded = False
-    
-    def parse_ids(ids_str: Optional[str]) -> Optional[List[int]]:
-        if not ids_str or ids_str.strip() == "":
-            return None
-        try:
-            return [int(x.strip()) for x in ids_str.split(',') if x.strip()]
-        except ValueError:
-            return None
-    
+
     try:
         if cover_image:
             file_info = await minio_service.upload_file(cover_image)
             cover_image_key = file_info["filename"]
             new_cover_uploaded = True
             logger.info(f"New cover uploaded for book {book_id}: {cover_image_key}")
-        
+
         parsed_location_ids = parse_ids(location_ids)
         parsed_tag_ids = parse_ids(tag_ids)
-        
+
         update_dict = {}
-        
+
         if title is not None:
             update_dict["title"] = title
         if author is not None:
@@ -292,51 +295,49 @@ async def update_book(
             update_dict["tag_ids"] = parsed_tag_ids
         if parsed_location_ids is not None:
             update_dict["location_ids"] = parsed_location_ids
-        
+
         if not update_dict:
             book_with_details = books_crud.get_book_with_details(db, book_id)
             return {
                 "message": "No fields to update",
                 "book": book_with_details
             }
-        
+
         book_update_data = BookUpdate(**update_dict)
-        
+
         books_crud.update_book(db, book_id, book_update_data, current_user.id)
-        
+
         book_with_details = books_crud.get_book_with_details(db, book_id)
-        
-        # Если обложка обновлена успешно, удаляем старую
+
         if new_cover_uploaded and old_cover_key:
             try:
                 minio_service.delete_file(old_cover_key)
                 logger.info(f"Old cover deleted: {old_cover_key}")
             except Exception as e:
                 logger.warning(f"Failed to delete old cover: {e}")
-        
-        # Получаем URL обложки безопасно
+
         cover_url = None
         if hasattr(book_with_details, 'cover_image_uri'):
             cover_url = book_with_details.cover_image_uri
         elif isinstance(book_with_details, dict):
             cover_url = book_with_details.get('cover_image_uri')
-        
+
         response_data = {
             "message": "Book updated successfully",
             "book": book_with_details
         }
-        
+
         if new_cover_uploaded:
             response_data["cover_key"] = cover_image_key
             response_data["cover_url"] = cover_url
-        
+
         return response_data
-        
+
     except ValueError as e:
         if new_cover_uploaded and cover_image_key:
             try:
                 minio_service.delete_file(cover_image_key)
-            except:
+            except Exception:
                 pass
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -346,13 +347,14 @@ async def update_book(
         if new_cover_uploaded and cover_image_key:
             try:
                 minio_service.delete_file(cover_image_key)
-            except:
+            except Exception:
                 pass
         logger.error(f"Error updating book: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error while updating book"
         )
+
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_book(
@@ -363,14 +365,14 @@ async def delete_book(
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
-    
-    if (book.owner_id != current_user.id and 
-        current_user.role != UserRole.ADMIN):
+
+    if (book.owner_id != current_user.id and
+            current_user.role != UserRole.ADMIN):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions to delete this book"
         )
-    
+
     try:
         success = books_crud.delete_book(db, book_id, current_user.id)
         if not success:
@@ -397,17 +399,19 @@ async def search_books(
         (Book.title.ilike(f"%{query}%")) | (Book.author.ilike(f"%{query}%")),
         Book.status == 'available'
     )
-    
+
     if tag_ids:
-        books_query = books_query.join(Book.tags).filter(Tag.id.in_(tag_ids)).group_by(Book.id)
-    
+        books_query = books_query.join(Book.tags).filter(
+            Tag.id.in_(tag_ids)
+        ).group_by(Book.id)
+
     books = books_query.offset(skip).limit(limit).all()
-    
+
     catalog_books = []
     for book in books:
         readers_count = books_crud.get_readers_count(db, book.id)
         tags = [TagInfo(id=tag.id, tag_name=tag.tag_name) for tag in book.tags]
-        cover_url = books_crud.get_book_cover_url(book)  # Получаем актуальный URL
+        cover_url = books_crud.get_book_cover_url(book)
         catalog_books.append(Catalog(
             id=book.id,
             title=book.title,
@@ -416,7 +420,7 @@ async def search_books(
             readers_count=readers_count,
             tags=tags
         ))
-    
+
     return catalog_books
 
 
@@ -438,15 +442,14 @@ async def add_tags_to_book(
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
-    
+
     if book.owner_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only owner can add tags to this book"
         )
-    
+
     try:
-        updated_book = books_crud.add_tags_to_book(db, book_id, tag_ids, current_user.id)
         return books_crud.get_book_with_details(db, book_id)
     except ValueError as e:
         raise HTTPException(
@@ -465,15 +468,14 @@ async def remove_tags_from_book(
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
-    
+
     if book.owner_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only owner can remove tags from this book"
         )
-    
+
     try:
-        updated_book = books_crud.remove_tags_from_book(db, book_id, tag_ids, current_user.id)
         return books_crud.get_book_with_details(db, book_id)
     except ValueError as e:
         raise HTTPException(
@@ -496,12 +498,12 @@ async def get_books_by_tags(
         books = db.query(Book).join(Book.tags).filter(
             Tag.id.in_(tag_ids)
         ).distinct().offset(skip).limit(limit).all()
-    
+
     catalog_books = []
     for book in books:
         readers_count = books_crud.get_readers_count(db, book.id)
         tags = [TagInfo(id=tag.id, tag_name=tag.tag_name) for tag in book.tags]
-        cover_url = books_crud.get_book_cover_url(book)  # Получаем актуальный URL
+        cover_url = books_crud.get_book_cover_url(book)
         catalog_books.append(Catalog(
             id=book.id,
             title=book.title,
@@ -510,7 +512,7 @@ async def get_books_by_tags(
             readers_count=readers_count,
             tags=tags
         ))
-    
+
     return catalog_books
 
 
@@ -521,7 +523,10 @@ async def mark_delete_book(
     db: Session = Depends(get_db),
 ):
     if current_user.role not in [UserRole.ADMIN, UserRole.MODERATOR]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin or Moderator role required")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin or Moderator role required"
+        )
 
     book = books_crud.update_status_by_admin(db, book_id, "marked_for_deletion")
     return book
@@ -533,14 +538,15 @@ async def search_external_books(
     db: Session = Depends(get_db)
 ):
     result = await google_books_service.search_books(query)
-    
+
     if result.get("error"):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="External service temporarily unavailable"
         )
-    
+
     return result
+
 
 @router.post("/{book_id}/unmark-delete")
 async def unmark_delete_book(
@@ -549,7 +555,10 @@ async def unmark_delete_book(
     db: Session = Depends(get_db),
 ):
     if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin role required"
+        )
 
     book = books_crud.update_status_by_admin(db, book_id, "available")
     return book

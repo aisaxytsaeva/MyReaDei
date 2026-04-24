@@ -1,25 +1,29 @@
 from typing import List, Optional
 from pydantic import BaseModel, field_validator
 
+
 class LocationInfo(BaseModel):
     id: int
     name: str
     address: str
-    
+
     class Config:
         from_attributes = True
+
 
 class TagInfo(BaseModel):
     id: int
     tag_name: str
 
+
 class Catalog(BaseModel):
     id: int
     title: str
     author: str
-    cover_image_uri: str 
+    cover_image_uri: str
     readers_count: int
-    tags: List[TagInfo] = []  
+    tags: List[TagInfo] = []
+
 
 class BookResponse(BaseModel):
     id: int
@@ -27,26 +31,28 @@ class BookResponse(BaseModel):
     author: str
     description: str
     cover_image_uri: str
-    reader_count: int 
+    reader_count: int
     locations: List[LocationInfo]
     owner_id: int
     status: str
-    tags: List[TagInfo] = [] 
+    tags: List[TagInfo] = []
+
 
 class BookCreate(BaseModel):
-    title: str  
+    title: str
     author: str
-    description: str  
+    description: str
     cover_image_key: Optional[str] = None
-    location_ids: List[int] = []  
-    tag_ids: List[TagInfo] = []   
-    
+    location_ids: List[int] = []
+    tag_ids: List[TagInfo] = []
+
     @field_validator('tag_ids')
     @classmethod
     def validate_tag_ids(cls, v: List[TagInfo]) -> List[TagInfo]:
         if len(v) > 10:
             raise ValueError('Maximum 10 tags per book')
         return v
+
 
 class BookUpdate(BaseModel):
     title: Optional[str] = None
@@ -55,13 +61,16 @@ class BookUpdate(BaseModel):
     cover_image_key: Optional[str] = None
     status: Optional[str] = None
     location_ids: Optional[List[int]] = None
-    tag_ids: Optional[List[TagInfo]] = None 
+    tag_ids: Optional[List[TagInfo]] = None
 
     @field_validator("status")
     @classmethod
     def validate_status(cls, v: str) -> str:
-        if v and v not in ["available", "unavailable", "reserved", "marked_for_deletion"]:
-            raise ValueError("Status must be 'available', 'unavailable', 'reserved', or 'marked_for_deletion'")
+        allowed = ["available", "unavailable", "reserved", "marked_for_deletion"]
+        if v and v not in allowed:
+            raise ValueError(
+                "Status must be 'available', 'unavailable', 'reserved', or 'marked_for_deletion'"
+            )
         return v
 
     @field_validator('tag_ids')
@@ -71,13 +80,16 @@ class BookUpdate(BaseModel):
             raise ValueError('Maximum 10 tags per book')
         return v
 
+
 class DeleteBook(BaseModel):
     book_id: int
+
 
 class DeleteBookResponse(BaseModel):
     book_id: int
     success: bool
     message: str = "Книга успешно удалена"
+
 
 class BookForDelete(BaseModel):
     id: int
@@ -85,6 +97,4 @@ class BookForDelete(BaseModel):
     author: str
     cover_image_uri: str
     status: str
-    tags: List[TagInfo] = [] 
-
-
+    tags: List[TagInfo] = []

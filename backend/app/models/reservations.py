@@ -1,8 +1,8 @@
-
 from app.core.db import Base
 from sqlalchemy import Column, Integer, ForeignKey, String, DateTime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+
 
 class Reservation(Base):
     __tablename__ = "reservations"
@@ -14,9 +14,8 @@ class Reservation(Base):
     status = Column(String(20), default="pending")
     planned_return_days = Column(Integer, nullable=False)
     returned_at = Column(DateTime(timezone=True))
-    created_at = Column(DateTime(timezone=True),server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now())
-
 
     book = relationship("Book", back_populates="reservations")
     borrower = relationship("User", back_populates="reservations")

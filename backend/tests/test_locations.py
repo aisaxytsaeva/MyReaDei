@@ -1,7 +1,7 @@
-import pytest
 from app.models.locations import Location
 from app.crud import locations as locations_crud
 from app.schemas.location import LocationCreate
+
 
 class TestLocations:
 
@@ -12,14 +12,14 @@ class TestLocations:
             latitude=55.7558,
             longitude=37.6176
         )
-        
+
         location = locations_crud.create_location(
             db_session, location_data, test_user.id
         )
-        
+
         assert location.id is not None
         assert location.name == "Памятник Ленину"
-        assert location.is_approved is False  
+        assert location.is_approved is False
 
     def test_get_pending_locations(self, db_session, test_user):
         location_data = LocationCreate(
@@ -29,9 +29,9 @@ class TestLocations:
             longitude=37.6176
         )
         locations_crud.create_location(db_session, location_data, test_user.id)
-        
+
         pending = locations_crud.get_locations_pending_approval(db_session)
-        
+
         assert len(pending) >= 1
         assert pending[0].is_approved is False
 
@@ -43,9 +43,9 @@ class TestLocations:
             longitude=37.6176
         )
         location = locations_crud.create_location(db_session, location_data, test_user.id)
-        
+
         approved = locations_crud.approve_location(db_session, location.id)
-        
+
         assert approved.is_approved is True
 
     def test_delete_location(self, db_session, test_user):
@@ -56,8 +56,10 @@ class TestLocations:
             longitude=37.6176
         )
         location = locations_crud.create_location(db_session, location_data, test_user.id)
-        
+
         result = locations_crud.delete_location(db_session, location.id)
-        
+
         assert result is True
-        assert db_session.query(Location).filter(Location.id == location.id).first() is None
+        assert db_session.query(Location).filter(
+            Location.id == location.id
+        ).first() is None

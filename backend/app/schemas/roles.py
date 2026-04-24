@@ -2,11 +2,14 @@ from pydantic import BaseModel
 from typing import List
 from app.core.permissions import UserRole
 
+
 class RoleUpdateRequest(BaseModel):
     role: UserRole
 
+
 class ActiveUpdateRequest(BaseModel):
     is_active: bool
+
 
 class AdminUserResponse(BaseModel):
     id: int
@@ -15,8 +18,10 @@ class AdminUserResponse(BaseModel):
     role: UserRole
     is_active: bool
 
+
 class RolesListResponse(BaseModel):
     roles: List[UserRole]
+
 
 class PermissionsResponse(BaseModel):
     permissions: List[str]

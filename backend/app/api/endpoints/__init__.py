@@ -9,7 +9,6 @@ from .tags import router as tags_router
 from .seo import router as seo_router
 
 
-
 __all__ = [
     "auth_router",
     "users_router",
@@ -20,5 +19,4 @@ __all__ = [
     "admin_roles_router",
     "tags_router",
     "seo_router"
-
 ]

@@ -2,6 +2,7 @@ from datetime import timedelta
 from fastapi import Response
 from .config import settings
 
+
 def set_refresh_cookie(response: Response, refresh_token: str):
     max_age = int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds())
     response.set_cookie(
@@ -13,6 +14,7 @@ def set_refresh_cookie(response: Response, refresh_token: str):
         max_age=max_age,
         path="/auth/refresh",
     )
+
 
 def clear_refresh_cookie(response: Response):
     response.delete_cookie(

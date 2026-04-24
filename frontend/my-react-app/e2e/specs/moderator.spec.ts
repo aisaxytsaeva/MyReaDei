@@ -1,187 +1,264 @@
 import { test, expect } from '../fixtures/auth.fixture';
 
-test.describe('Book Mark for Deletion - Moderator and Admin', () => {
-  let testBookId: number;
 
-  test.beforeEach(async ({ yunhoPage }) => {
-    await yunhoPage.goto('/home');
-    await yunhoPage.waitForLoadState('networkidle');
-    await yunhoPage.waitForTimeout(2000);
-    
-    // Проверяем, что мы действительно на странице home
-    const currentUrl = yunhoPage.url();
-    console.log('Current URL after login:', currentUrl);
-    
-    // Проверяем наличие кнопки "Добавить книгу" или переходим напрямую
-    const addBookLink = yunhoPage.locator('a:has-text("Добавить книгу"), a[href*="add-book"]');
-    const hasAddBookLink = await addBookLink.count() > 0;
-    
-    if (hasAddBookLink) {
-      await addBookLink.first().click();
-    } else {
-      await yunhoPage.goto('/add-book');
-    }
-    
-    await yunhoPage.waitForLoadState('networkidle');
-    await yunhoPage.waitForTimeout(2000);
-    
-    // Делаем скриншот для отладки
-    await yunhoPage.screenshot({ path: 'yunho-add-book-debug.png', fullPage: true });
-    
-    const uniqueTitle = `Тестовая книга для удаления ${Date.now()}`;
-    
-    // Проверяем наличие формы с правильными селекторами
-    const hasTitleInput = await yunhoPage.locator('[data-testid="book-title"]').count();
-    const hasAuthorInput = await yunhoPage.locator('[data-testid="book-author"]').count();
-    
-    console.log('Has book-title input:', hasTitleInput);
-    console.log('Has book-author input:', hasAuthorInput);
-    
-    if (hasTitleInput === 0) {
-      // Если форма не найдена, возможно пользователь не имеет прав
-      console.log('User yunho cannot create books - skipping test');
-      test.skip();
-      return;
-    }
-    
-    await yunhoPage.fill('[data-testid="book-title"]', uniqueTitle);
-    await yunhoPage.fill('[data-testid="book-author"]', 'Тестовый Автор');
-    await yunhoPage.fill('[data-testid="book-description"]', 'Описание тестовой книги');
-    
-    await yunhoPage.locator('[data-testid="location-select"]').selectOption({ index: 0 });
-    await yunhoPage.click('[data-testid="submit-book"]');
-    
-    await yunhoPage.waitForURL(/\/book\/\d+/, { timeout: 15000 });
-    const url = yunhoPage.url();
-    testBookId = parseInt(url.split('/').pop()!);
-    console.log(`Created book with ID: ${testBookId} by yunho`);
-  });
+async function jsClick(page: any, selector: string) {
+  await page.evaluate((sel: string) => {
+    const element = document.querySelector(sel) as HTMLElement;
+    if (element) element.click();
+  }, selector);
+}
 
-  test('moderator can mark book for deletion', async ({ moderatorPage }) => {
-    if (!testBookId) {
-      test.skip();
-      return;
-    }
-    
-    await moderatorPage.goto(`/book/${testBookId}`);
+test.describe('Moderator Page - Tag Management', () => {
+  test.beforeEach(async ({ moderatorPage }) => {
+    await moderatorPage.goto('/moderator');
     await moderatorPage.waitForLoadState('networkidle');
     await moderatorPage.waitForTimeout(2000);
+  });
+
+  test('moderator can view tags list', async ({ moderatorPage }) => {
+    await expect(moderatorPage.locator('.tm-title')).toHaveText('Управление тегами');
+    const tagsGrid = moderatorPage.locator('.tm-tags-grid');
+    const emptyState = moderatorPage.locator('.tm-empty');
     
-    const markDeleteButton = moderatorPage.locator('button:has-text("Пометить на удаление")');
-    await markDeleteButton.waitFor({ state: 'visible', timeout: 10000 });
-    await markDeleteButton.click();
+    const hasTags = await tagsGrid.isVisible().catch(() => false);
+    const isEmpty = await emptyState.isVisible().catch(() => false);
+    
+    expect(hasTags || isEmpty).toBeTruthy();
+  });
+
+  test('moderator can see total tags count', async ({ moderatorPage }) => {
+    const stats = moderatorPage.locator('.tm-stats-count');
+    await expect(stats).toBeVisible();
+    
+    const statsText = await stats.textContent();
+    expect(statsText).toMatch(/Всего тегов: \d+/);
+  });
+
+  test('moderator can navigate to create tag page', async ({ moderatorPage }) => {
+    const addButton = moderatorPage.locator('.tm-add-button, .tm-empty-create-btn').first();
+    await addButton.waitFor({ state: 'visible', timeout: 10000 });
+    await addButton.click();
+    await expect(moderatorPage).toHaveURL('/tags/create', { timeout: 5000 });
+  });
+
+  test('moderator can create a new tag', async ({ moderatorPage }) => {
+    const tagName = `Тестовый тег ${Date.now()}`;
+    const tagDescription = `Описание теста ${Date.now()}`;
+    
+    const addButton = moderatorPage.locator('.tm-add-button, .tm-empty-create-btn').first();
+    await addButton.waitFor({ state: 'visible', timeout: 10000 });
+    await addButton.click();
+    
+    await moderatorPage.waitForURL('/tags/create', { timeout: 5000 });
+    await moderatorPage.waitForSelector('.at-input', { timeout: 5000 });
+    
+    await moderatorPage.fill('.at-input', tagName);
+    await moderatorPage.fill('.at-textarea', tagDescription);
+    await moderatorPage.click('.at-btnSubmit');
+    
+    await moderatorPage.waitForURL('/moderator', { timeout: 5000 });
+    await moderatorPage.waitForTimeout(1000);
+    await moderatorPage.reload();
+    await moderatorPage.waitForSelector('.tm-tag-card, .tm-empty', { timeout: 10000 });
+    
+    const tagNames = await moderatorPage.locator('.tm-tag-name').allTextContents();
+    const found = tagNames.some(name => name === tagName);
+    expect(found).toBeTruthy();
+  });
+
+  test('moderator cannot create tag without name', async ({ moderatorPage }) => {
+    const addButton = moderatorPage.locator('.tm-add-button, .tm-empty-create-btn').first();
+    await addButton.waitFor({ state: 'visible', timeout: 10000 });
+    await addButton.click();
+    
+    await moderatorPage.waitForURL('/tags/create', { timeout: 5000 });
+    await moderatorPage.waitForSelector('.at-input', { timeout: 5000 });
+    
+    await moderatorPage.fill('.at-input', '');
+    await moderatorPage.click('.at-btnSubmit');
     
     await moderatorPage.waitForTimeout(1000);
+    expect(moderatorPage.url()).toContain('/tags/create');
+  });
+
+  test('moderator can cancel tag creation', async ({ moderatorPage }) => {
+    const initialCount = await moderatorPage.locator('.tm-tag-card').count();
+    const tagName = 'Отмененный тег';
     
+    const addButton = moderatorPage.locator('.tm-add-button, .tm-empty-create-btn').first();
+    await addButton.waitFor({ state: 'visible', timeout: 10000 });
+    await addButton.click();
+    
+    await moderatorPage.waitForURL('/tags/create', { timeout: 5000 });
+    await moderatorPage.waitForSelector('.at-input', { timeout: 5000 });
+    
+    await moderatorPage.fill('.at-input', tagName);
+    await moderatorPage.click('.at-btnCancel');
+    
+    await moderatorPage.waitForURL('/moderator', { timeout: 5000 });
+    await moderatorPage.waitForTimeout(1000);
     await moderatorPage.reload();
-    await moderatorPage.waitForLoadState('networkidle');
-    await moderatorPage.waitForTimeout(2000);
+    await moderatorPage.waitForSelector('.tm-tag-card, .tm-empty', { timeout: 10000 });
     
-    const statusBadge = moderatorPage.locator('.status-badge');
-    await expect(statusBadge).toContainText('Помечена на удаление');
+    const newCount = await moderatorPage.locator('.tm-tag-card').count();
+    expect(newCount).toBe(initialCount);
+    
+    const tagNames = await moderatorPage.locator('.tm-tag-name').allTextContents();
+    const found = tagNames.some(name => name === tagName);
+    expect(found).toBeFalsy();
   });
 
-  test('admin can mark book for deletion', async ({ adminPage }) => {
-    if (!testBookId) {
+  test('moderator can navigate to edit tag page', async ({ moderatorPage }) => {
+    const editButton = moderatorPage.locator('.tm-edit-btn').first();
+    await editButton.waitFor({ state: 'visible', timeout: 10000 });
+    await editButton.click();
+    await expect(moderatorPage).toHaveURL(/\/tags\/edit\/\d+/, { timeout: 5000 });
+  });
+
+  test('moderator can edit existing tag', async ({ moderatorPage }) => {
+    const updatedName = `Обновленный тег ${Date.now()}`;
+    
+    const editButton = moderatorPage.locator('.tm-edit-btn').first();
+    await editButton.waitFor({ state: 'visible', timeout: 10000 });
+    await editButton.click();
+    
+    await moderatorPage.waitForURL(/\/tags\/edit\/\d+/, { timeout: 5000 });
+    await moderatorPage.waitForSelector('.at-input', { timeout: 5000 });
+    
+    await moderatorPage.fill('.at-input', updatedName);
+    await moderatorPage.click('.at-btnSubmit');
+    
+    await moderatorPage.waitForURL('/moderator', { timeout: 5000 });
+    await moderatorPage.waitForTimeout(1000);
+    await moderatorPage.reload();
+    await moderatorPage.waitForSelector('.tm-tag-card, .tm-empty', { timeout: 10000 });
+    
+    const tagNames = await moderatorPage.locator('.tm-tag-name').allTextContents();
+    const found = tagNames.some(name => name === updatedName);
+    expect(found).toBeTruthy();
+  });
+
+  test('moderator can cancel tag edit', async ({ moderatorPage }) => {
+    const editButton = moderatorPage.locator('.tm-edit-btn').first();
+    await editButton.waitFor({ state: 'visible', timeout: 10000 });
+    
+    const originalName = await moderatorPage.locator('.tm-tag-name').first().textContent();
+    
+    await editButton.click();
+    await moderatorPage.waitForURL(/\/tags\/edit\/\d+/, { timeout: 5000 });
+    await moderatorPage.waitForSelector('.at-input', { timeout: 5000 });
+    
+    await moderatorPage.fill('.at-input', 'Измененный тег для отмены');
+    await moderatorPage.click('.at-btnCancel');
+    
+    await moderatorPage.waitForURL('/moderator', { timeout: 5000 });
+    await moderatorPage.waitForTimeout(1000);
+    await moderatorPage.reload();
+    await moderatorPage.waitForSelector('.tm-tag-card, .tm-empty', { timeout: 10000 });
+    
+    const tagNames = await moderatorPage.locator('.tm-tag-name').allTextContents();
+    const foundOriginal = tagNames.some(name => name === originalName);
+    const foundChanged = tagNames.some(name => name === 'Измененный тег для отмены');
+    
+    expect(foundOriginal).toBeTruthy();
+    expect(foundChanged).toBeFalsy();
+  });
+
+
+  test('moderator can cancel tag deletion', async ({ moderatorPage }) => {
+    const initialCount = await moderatorPage.locator('.tm-tag-card').count();
+    
+    if (initialCount === 0) {
       test.skip();
       return;
     }
     
-    await adminPage.goto(`/book/${testBookId}`);
-    await adminPage.waitForLoadState('networkidle');
-    await adminPage.waitForTimeout(2000);
-    
-    const markDeleteButton = adminPage.locator('button:has-text("Пометить на удаление")');
-    await markDeleteButton.waitFor({ state: 'visible', timeout: 10000 });
-    await markDeleteButton.click();
-    
-    await adminPage.waitForTimeout(1000);
-    
-    await adminPage.reload();
-    await adminPage.waitForLoadState('networkidle');
-    await adminPage.waitForTimeout(2000);
-    
-    const statusBadge = adminPage.locator('.status-badge');
-    await expect(statusBadge).toContainText('Помечена на удаление');
-  });
-
-  test('admin can unmark book for deletion', async ({ adminPage }) => {
-    if (!testBookId) {
-      test.skip();
-      return;
-    }
-    
-    await adminPage.goto(`/book/${testBookId}`);
-    await adminPage.waitForLoadState('networkidle');
-    await adminPage.waitForTimeout(2000);
-    
-    const markDeleteButton = adminPage.locator('button:has-text("Пометить на удаление")');
-    await markDeleteButton.waitFor({ state: 'visible', timeout: 10000 });
-    await markDeleteButton.click();
-    await adminPage.waitForTimeout(1000);
-    
-    await adminPage.reload();
-    await adminPage.waitForLoadState('networkidle');
-    await adminPage.waitForTimeout(2000);
-    
-    const unmarkButton = adminPage.locator('button:has-text("Снять пометку удаления")');
-    await unmarkButton.waitFor({ state: 'visible', timeout: 10000 });
-    await unmarkButton.click();
-    
-    await adminPage.waitForTimeout(1000);
-    
-    await adminPage.reload();
-    await adminPage.waitForLoadState('networkidle');
-    await adminPage.waitForTimeout(2000);
-    
-    const statusBadge = adminPage.locator('.status-badge');
-    await expect(statusBadge).toContainText('Доступна');
-  });
-
-  test('admin can permanently delete marked book', async ({ adminPage }) => {
-    if (!testBookId) {
-      test.skip();
-      return;
-    }
-    
-    await adminPage.goto(`/book/${testBookId}`);
-    await adminPage.waitForLoadState('networkidle');
-    await adminPage.waitForTimeout(2000);
-    
-    const markDeleteButton = adminPage.locator('button:has-text("Пометить на удаление")');
-    await markDeleteButton.waitFor({ state: 'visible', timeout: 10000 });
-    await markDeleteButton.click();
-    await adminPage.waitForTimeout(1000);
-    
-    await adminPage.reload();
-    await adminPage.waitForLoadState('networkidle');
-    await adminPage.waitForTimeout(2000);
-    
-    const deleteButton = adminPage.locator('button:has-text("Удалить книгу")');
+    const firstTagName = await moderatorPage.locator('.tm-tag-name').first().textContent();
+    const deleteButton = moderatorPage.locator('.tm-delete-btn').first();
     await deleteButton.waitFor({ state: 'visible', timeout: 10000 });
     
-    adminPage.on('dialog', async dialog => {
-      expect(dialog.message()).toContain('Вы уверены, что хотите удалить эту книгу?');
-      await dialog.accept();
+    moderatorPage.on('dialog', async dialog => {
+      await dialog.dismiss();
     });
     
     await deleteButton.click();
-    await adminPage.waitForTimeout(2000);
+    await moderatorPage.waitForTimeout(1000);
+    await moderatorPage.reload();
+    await moderatorPage.waitForSelector('.tm-tag-card, .tm-empty', { timeout: 10000 });
     
-    await expect(adminPage).toHaveURL('/home', { timeout: 5000 });
+    const newCount = await moderatorPage.locator('.tm-tag-card').count();
+    expect(newCount).toBe(initialCount);
+    
+    const tagNames = await moderatorPage.locator('.tm-tag-name').allTextContents();
+    const found = tagNames.some(name => name === firstTagName);
+    expect(found).toBeTruthy();
   });
 
-  test('regular user cannot see mark for deletion button', async ({ authenticatedPage }) => {
-    if (!testBookId) {
-      test.skip();
-      return;
+  test('moderator can go back to home', async ({ moderatorPage }) => {
+      await jsClick(moderatorPage, '.tm-back-button');
+      await expect(moderatorPage).toHaveURL('/home', { timeout: 5000 });
+  });
+  
+  test('moderator can refresh tags list', async ({ moderatorPage }) => {
+    const retryButton = moderatorPage.locator('.tm-retry-btn');
+    if (await retryButton.isVisible()) {
+      await retryButton.click();
+      await moderatorPage.waitForSelector('.tm-tags-grid, .tm-empty', { timeout: 5000 });
     }
+  });
+
+  test('displays empty state when no tags', async ({ page }) => {
+    await page.goto('/moderator');
+    await page.waitForLoadState('networkidle');
     
-    await authenticatedPage.goto(`/book/${testBookId}`);
-    await authenticatedPage.waitForLoadState('networkidle');
-    await authenticatedPage.waitForTimeout(2000);
+    const emptyState = page.locator('.tm-empty');
+    const tagsGrid = page.locator('.tm-tags-grid');
     
-    const markDeleteButton = authenticatedPage.locator('button:has-text("Пометить на удаление")');
-    await expect(markDeleteButton).not.toBeVisible();
+    const isEmptyVisible = await emptyState.isVisible().catch(() => false);
+    const isGridVisible = await tagsGrid.isVisible().catch(() => false);
+    
+    if (isEmptyVisible) {
+      await expect(emptyState.locator('h3')).toHaveText('Нет тегов');
+      await expect(emptyState.locator('.tm-empty-create-btn')).toBeVisible();
+    } else {
+      await expect(tagsGrid).toBeVisible();
+    }
+  });
+
+  test('unauthenticated user cannot access moderator page', async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    
+    await page.goto('/moderator');
+    await expect(page).toHaveURL('/auth', { timeout: 10000 });
+    
+    await context.close();
+  });
+
+  test('regular user cannot access moderator page', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/moderator');
+    
+    const errorMessage = authenticatedPage.locator('.tm-error');
+    await expect(errorMessage).toBeVisible();
+    await expect(errorMessage.locator('h2')).toHaveText('Доступ запрещён');
+    await expect(errorMessage.locator('.tm-back-btn')).toBeVisible();
+  });
+
+  test('moderator can create tag using floating button', async ({ moderatorPage }) => {
+    const addButton = moderatorPage.locator('.tm-add-button');
+    await expect(addButton).toBeVisible();
+    await addButton.click();
+    await expect(moderatorPage).toHaveURL('/tags/create', { timeout: 5000 });
+  });
+
+  test('moderator sees edit and delete buttons for each tag', async ({ moderatorPage }) => {
+    const firstTag = moderatorPage.locator('.tm-tag-card').first();
+    await firstTag.waitFor({ state: 'visible', timeout: 10000 });
+    
+    const editButton = firstTag.locator('.tm-edit-btn');
+    const deleteButton = firstTag.locator('.tm-delete-btn');
+    
+    await expect(editButton).toBeVisible();
+    await expect(deleteButton).toBeVisible();
   });
 });

@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime, timedelta
 from app.core.db import get_db
 from app.core.security import get_current_user
 from app.crud import reservation as reservations_crud
@@ -17,7 +16,6 @@ async def create_reservation(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-
     try:
         reservation = reservations_crud.create_reservation(
             db, reservation_data, current_user.id
@@ -27,7 +25,7 @@ async def create_reservation(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
-        )
+        ) from e
 
 
 @router.get("/my", response_model=List[ReservationResponse])
@@ -38,14 +36,13 @@ async def get_my_reservations(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-
     reservations = reservations_crud.get_user_reservations(
         db, current_user.id, skip=skip, limit=limit
     )
-    
+
     if status_filter:
         reservations = [r for r in reservations if r.status == status_filter]
-    
+
     return reservations
 
 
@@ -63,7 +60,7 @@ async def get_reservation(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Reservation not found or access denied"
         )
-    
+
     return reservation
 
 
@@ -73,7 +70,6 @@ async def confirm_reservation(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-
     try:
         reservation = reservations_crud.confirm_reservation(
             db, reservation_id, current_user.id
@@ -83,7 +79,7 @@ async def confirm_reservation(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
-        )
+        ) from e
 
 
 @router.post("/{reservation_id}/close", response_model=ReservationResponse)
@@ -92,7 +88,6 @@ async def close_reservation(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-
     try:
         reservation = reservations_crud.close_reservation(db, reservation_id)
         if not reservation:
@@ -105,7 +100,7 @@ async def close_reservation(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
-        )
+        ) from e
 
 
 @router.post("/{reservation_id}/cancel", response_model=ReservationResponse)
@@ -123,7 +118,7 @@ async def cancel_reservation(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
-        )
+        ) from e
 
 
 @router.get("/as-owner/", response_model=List[ReservationResponse])
@@ -138,7 +133,3 @@ async def get_owner_reservations(
         db, current_user.id, skip=skip, limit=limit, status_filter=status_filter
     )
     return reservations
-
-
-
-

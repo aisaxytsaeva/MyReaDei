@@ -6,7 +6,9 @@ from app.core.db import get_db
 from app.schemas.statistics import PlatformStats, PopularBook
 from app.crud import statistics as stats_crud
 
+
 router = APIRouter(prefix="/statistics", tags=["statistics"])
+
 
 @router.get("/platform", response_model=PlatformStats)
 async def get_platform_stats(

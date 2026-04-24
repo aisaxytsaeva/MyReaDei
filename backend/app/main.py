@@ -1,17 +1,27 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from app.api.endpoints import auth_router, books_router, users_router, locations_router, reservation_router, statitics_router, admin_roles_router, tags_router, seo_router
-from app.core.db import Base, engine
 import time
 import logging
 from pathlib import Path
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from app.api.endpoints import (
+    auth_router,
+    books_router,
+    users_router,
+    locations_router,
+    reservation_router,
+    statitics_router,
+    admin_roles_router,
+    tags_router,
+    seo_router
+)
+from app.core.db import Base, engine
 
 
-BASE_DIR = Path(__file__).resolve().parent  
-STATIC_DIR = BASE_DIR.parent / "static"     
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR.parent / "static"
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
@@ -34,11 +44,7 @@ def on_startup():
     Base.metadata.create_all(bind=engine)
 
 
-
-
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-
-
 
 origins = [
     "http://localhost:3000",
@@ -47,16 +53,17 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,          
-    allow_credentials=True,         
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
-    
+
     logger.info(
         f"INCOMING: {request.method} {request.url.path} | "
         f"Client: {request.client.host if request.client else 'unknown'}"
@@ -73,22 +80,26 @@ async def log_requests(request: Request, call_next):
     )
 
     response.headers["X-Process-Time"] = str(process_time)
-    
+
     return response
+
 
 app.include_router(auth_router, prefix="", tags=["auth"])
 app.include_router(users_router, prefix="", tags=["users"])
 app.include_router(books_router, prefix="", tags=["books"])
 app.include_router(tags_router, prefix="", tags=["tags"])
-app.include_router(locations_router, prefix="", tags=["locations"])  
-app.include_router(reservation_router, prefix="", tags=["reservations"]) 
-app.include_router(statitics_router, prefix="", tags=["statistics"]) 
-app.include_router(admin_roles_router, prefix="", tags=["admin"]) 
+app.include_router(locations_router, prefix="", tags=["locations"])
+app.include_router(reservation_router, prefix="", tags=["reservations"])
+app.include_router(statitics_router, prefix="", tags=["statistics"])
+app.include_router(admin_roles_router, prefix="", tags=["admin"])
 app.include_router(seo_router, prefix="", tags=["seo"])
-
 
 
 @app.get("/")
 async def root():
     return {"message": "Running"}
 
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "myreadei-backend"}

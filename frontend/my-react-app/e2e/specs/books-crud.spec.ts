@@ -115,10 +115,8 @@ test.describe('Add/Edit Book Page', () => {
   
   await page.click(selectors.submitButton);
   
-  // Ждем перенаправления на страницу книги
   await page.waitForURL(/\/book\/\d+/, { timeout: 15000 });
   
-  // Получаем ID книги из URL
   const bookUrl = page.url();
   const bookId = bookUrl.split('/').pop();
   

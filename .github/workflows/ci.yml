@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: root
+          POSTGRES_DB: MyReaDei
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout
+        run: |
+          git clone https://github.com/${{ github.repository }}.git .
+          git checkout ${{ github.sha }}
+      
+      - name: Setup Python
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3.13 python3-pip
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip3 install -r requirements.txt
+          pip3 install flake8 pytest
+      
+      - name: Lint
+        run: |
+          cd backend
+          flake8 app/ --max-line-length=120 --exclude=migrations
+      
+      - name: Test
+        env:
+          DATABASE_URL: postgresql://postgres:root@localhost:5432/MyReaDei
+          SECRET_KEY: test
+        run: |
+          cd backend
+          python3 -m pytest tests/ -v --ignore=tests/e2e
+      
+      - name: Build Docker
+        run: |
+          docker compose build

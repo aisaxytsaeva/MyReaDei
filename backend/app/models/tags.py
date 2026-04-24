@@ -1,4 +1,3 @@
-
 from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.orm import relationship
 from app.core.db import Base, association_table
@@ -11,10 +10,9 @@ class Tag(Base):
     tag_name = Column(String, nullable=False, unique=True)
     description = Column(Text)
 
-
     books = relationship(
-        "Book", 
-        secondary=association_table, 
+        "Book",
+        secondary=association_table,
         back_populates="tags",
-        cascade="all, delete"  
+        cascade="all, delete"
     )

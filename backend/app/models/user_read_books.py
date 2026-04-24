@@ -3,6 +3,7 @@ from sqlalchemy.sql import func
 from app.core.db import Base
 from sqlalchemy.orm import relationship
 
+
 class UserReadBooks(Base):
     __tablename__ = "user_read_books"
 
@@ -13,11 +14,10 @@ class UserReadBooks(Base):
     read_at = Column(DateTime(timezone=True), server_default=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-   
     __table_args__ = (
         UniqueConstraint('user_id', 'book_id', name='unique_user_book'),
     )
 
     user = relationship("User")
-    book = relationship("Book") 
+    book = relationship("Book")
     reservation = relationship("Reservation", back_populates="read_records")

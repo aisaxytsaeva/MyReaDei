@@ -16,8 +16,10 @@ from app.schemas.auth import UserRegister, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+
 def refresh_ttl_seconds() -> int:
     return int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds())
+
 
 @router.post("/register", response_model=UserResponse)
 async def register(user_data: UserRegister, db: Session = Depends(get_db)):
@@ -32,7 +34,11 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
             created_at=user.created_at
         )
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        ) from e
+
 
 @router.post("/login")
 async def login(
@@ -44,15 +50,26 @@ async def login(
 ):
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password"
+        )
 
     access_token = create_access_token(
-        data={"sub": user.username, "role": user.role.value, "user_id": user.id},
+        data={
+            "sub": user.username,
+            "role": user.role.value,
+            "user_id": user.id
+        },
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
 
     refresh_token, jti, _expires_at = create_refresh_token(
-        data={"sub": user.username, "role": user.role.value, "user_id": user.id}
+        data={
+            "sub": user.username,
+            "role": user.role.value,
+            "user_id": user.id
+        }
     )
 
     store = RefreshStore(redis)
@@ -61,6 +78,7 @@ async def login(
     set_refresh_cookie(response, refresh_token)
 
     return {"access_token": access_token, "token_type": "bearer"}
+
 
 @router.post("/refresh")
 async def refresh(
@@ -93,12 +111,20 @@ async def refresh(
         raise HTTPException(status_code=401, detail="Refresh token revoked")
 
     new_access = create_access_token(
-        data={"sub": user.username, "role": user.role.value, "user_id": user.id},
+        data={
+            "sub": user.username,
+            "role": user.role.value,
+            "user_id": user.id
+        },
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
 
     new_refresh, new_jti, _new_exp = create_refresh_token(
-        data={"sub": user.username, "role": user.role.value, "user_id": user.id}
+        data={
+            "sub": user.username,
+            "role": user.role.value,
+            "user_id": user.id
+        }
     )
 
     await store.add(jti=new_jti, user_id=user.id, ttl_seconds=refresh_ttl_seconds())
@@ -107,6 +133,7 @@ async def refresh(
     set_refresh_cookie(response, new_refresh)
 
     return {"access_token": new_access, "token_type": "bearer"}
+
 
 @router.post("/logout")
 async def logout(
@@ -125,6 +152,7 @@ async def logout(
 
     clear_refresh_cookie(response)
     return {"success": True, "message": "Logged out successfully"}
+
 
 @router.post("/logout_all")
 async def logout_all(

@@ -1,5 +1,5 @@
-from datetime import datetime, timezone
 from redis.asyncio import Redis
+
 
 class RefreshStore:
     def __init__(self, redis: Redis):
@@ -26,11 +26,11 @@ class RefreshStore:
 
     async def revoke_all(self, user_id: int) -> int:
         user_key = self._user_key(user_id)
-        jtIs = await self.redis.smembers(user_key)
-        if not jtIs:
+        jtis = await self.redis.smembers(user_key)
+        if not jtis:
             await self.redis.delete(user_key)
             return 0
-        keys = [self._rt_key(jti) for jti in jtIs]
+        keys = [self._rt_key(jti) for jti in jtis]
         await self.redis.delete(*keys)
         await self.redis.delete(user_key)
-        return len(jtIs)
+        return len(jtis)
