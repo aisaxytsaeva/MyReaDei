@@ -1,3 +1,5 @@
+import os
+os.environ['TESTING'] = 'true'
 import asyncio
 from datetime import datetime, timedelta
 import os
