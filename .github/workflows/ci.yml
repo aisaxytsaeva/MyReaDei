@@ -19,6 +19,21 @@ jobs:
           POSTGRES_DB: MyReaDei
         ports:
           - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout
@@ -35,7 +50,7 @@ jobs:
         run: |
           cd backend
           pip3 install -r requirements.txt
-          pip3 install flake8 pytest
+          pip3 install flake8 pytest pytest-asyncio
       
       - name: Lint
         run: |
@@ -45,7 +60,9 @@ jobs:
       - name: Test
         env:
           DATABASE_URL: postgresql://postgres:root@localhost:5432/MyReaDei
-          SECRET_KEY: test
+          REDIS_URL: redis://localhost:6379/0
+          SECRET_KEY: test_secret_key
+          TESTING: "true"
         run: |
           cd backend
           python3 -m pytest tests/ -v --ignore=tests/e2e
