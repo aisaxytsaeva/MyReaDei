@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import os
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock, AsyncMock
 
 import pytest
 import jwt
@@ -19,20 +19,37 @@ os.environ['DATABASE_URL'] = 'sqlite:///./test.db'
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # ============================================
-# МОК MINIO - ДОЛЖЕН БЫТЬ ПЕРЕД ИМПОРТОМ app
+# МОК MINIO - ПОДМЕНЯЕМ ДО ИМПОРТА ЛЮБЫХ МОДУЛЕЙ APP
 # ============================================
-mock_minio = MagicMock()
-mock_minio.bucket_exists = MagicMock(return_value=True)
-mock_minio.make_bucket = MagicMock()
-mock_minio.set_bucket_policy = MagicMock()
-mock_minio.upload_file = AsyncMock(return_value={"filename": "test.jpg"})
-mock_minio.delete_file = MagicMock(return_value=True)
-mock_minio.get_file_url = MagicMock(return_value="http://localhost:9000/test.jpg")
+# Создаём мок-класс MinioService
+class MockMinioService:
+    def __init__(self):
+        self.bucket = "test-bucket"
+    
+    def bucket_exists(self, bucket_name):
+        return True
+    
+    def make_bucket(self, bucket_name):
+        pass
+    
+    def set_bucket_policy(self, bucket_name, policy):
+        pass
+    
+    async def upload_file(self, file, folder="covers"):
+        return {"filename": "test.jpg", "url": "http://test.com/test.jpg"}
+    
+    def delete_file(self, filename):
+        return True
+    
+    def get_file_url(self, filename):
+        return "http://localhost:9000/test.jpg"
 
-# Подменяем сервис ДО импорта app
+# Подменяем класс в модуле ДО его импорта
 import app.core.minio_client
-app.core.minio_client.minio_service = mock_minio
+app.core.minio_client.MinioService = MockMinioService
+app.core.minio_client.minio_service = MockMinioService()
 
+# Теперь можно импортировать всё остальное
 from app.main import app
 from app.core.db import Base, get_db
 from app.core.security import get_password_hash
