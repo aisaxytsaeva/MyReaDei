@@ -18,6 +18,21 @@ os.environ['DATABASE_URL'] = 'sqlite:///./test.db'
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# ============================================
+# МОК MINIO - ДОЛЖЕН БЫТЬ ПЕРЕД ИМПОРТОМ app
+# ============================================
+mock_minio = MagicMock()
+mock_minio.bucket_exists = MagicMock(return_value=True)
+mock_minio.make_bucket = MagicMock()
+mock_minio.set_bucket_policy = MagicMock()
+mock_minio.upload_file = AsyncMock(return_value={"filename": "test.jpg"})
+mock_minio.delete_file = MagicMock(return_value=True)
+mock_minio.get_file_url = MagicMock(return_value="http://localhost:9000/test.jpg")
+
+# Подменяем сервис ДО импорта app
+import app.core.minio_client
+app.core.minio_client.minio_service = mock_minio
+
 from app.main import app
 from app.core.db import Base, get_db
 from app.core.security import get_password_hash
